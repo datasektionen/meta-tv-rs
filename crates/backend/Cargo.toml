@@ -2,6 +2,7 @@
 name = "meta-tv-rs"
 version.workspace = true
 edition.workspace = true
+default-run = "meta-tv-rs"
 
 [dependencies]
 anyhow = "1.0.95"

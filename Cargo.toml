@@ -1,9 +1,17 @@
 [workspace]
 resolver = "2"
 members = [
-  "crates/backend"
+  "crates/backend",
+  "crates/frontend",
 ]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
+
+[profile.trunk-release]
+inherits = "release"
+opt-level = 'z'
+lto = true
+codegen-units = 1
+panic = "abort"

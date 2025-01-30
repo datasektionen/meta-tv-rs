@@ -6,5 +6,10 @@ pkgs.mkShell {
     rustfmt
     rust-analyzer
     clippy
+
+    trunk
+    leptosfmt
+    lld
+    tailwindcss
   ];
 }
