@@ -6,6 +6,7 @@ pkgs.mkShell {
     rustfmt
     rust-analyzer
     clippy
+    sea-orm-cli
 
     trunk
     leptosfmt

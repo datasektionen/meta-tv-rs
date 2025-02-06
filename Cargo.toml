@@ -1,8 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
+  "crates/entity",
   "crates/backend",
   "crates/frontend",
+  "crates/migration",
 ]
 
 [workspace.package]
