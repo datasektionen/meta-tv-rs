@@ -6,4 +6,7 @@ default-run = "meta-tv-rs"
 
 [dependencies]
 anyhow = "1.0.95"
+migration = { path = "../migration" }
 rocket = "0.5.1"
+sea-orm = { version = "1.1.4", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
+sea-orm-rocket = "0.5.5"

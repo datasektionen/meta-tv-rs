@@ -1,9 +1,3 @@
-#[macro_use]
-extern crate rocket;
-
-mod routes;
-
-#[launch]
-fn rocket() -> _ {
-    rocket::build().mount("/api", routes![routes::health::health])
+fn main() {
+    meta_tv_rs::main();
 }

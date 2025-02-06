@@ -1,0 +1,4 @@
+[default.databases.sea_orm]
+# Set through env variable if preferred:
+# ROCKET_DATABASES={sea_orm={url="postgresql://localhost/metatv"}}
+url = "postgres://root:root@localhost/metatv"
