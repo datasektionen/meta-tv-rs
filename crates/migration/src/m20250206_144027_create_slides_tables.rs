@@ -1,5 +1,5 @@
 use extension::postgres::Type;
-use sea_orm::{EnumIter, Iterable};
+use sea_orm::{DatabaseBackend, EnumIter, Iterable};
 use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
@@ -8,14 +8,17 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager
-            .create_type(
-                Type::create()
-                    .as_enum(ContentType)
-                    .values(ContentTypeVariants::iter())
-                    .to_owned(),
-            )
-            .await?;
+        let is_postgres = matches!(manager.get_database_backend(), DatabaseBackend::Postgres);
+        if is_postgres {
+            manager
+                .create_type(
+                    Type::create()
+                        .as_enum(ContentType)
+                        .values(ContentTypeVariants::iter())
+                        .to_owned(),
+                )
+                .await?;
+        }
 
         manager
             .create_table(
@@ -106,6 +109,13 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        let is_postgres = matches!(manager.get_database_backend(), DatabaseBackend::Postgres);
+        if is_postgres {
+            manager
+                .drop_type(Type::drop().name(ContentType).to_owned())
+                .await?;
+        }
+
         manager
             .drop_table(Table::drop().table(Screen::Table).to_owned())
             .await?;

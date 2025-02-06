@@ -9,8 +9,10 @@ use sea_orm_rocket::Database;
 #[macro_use]
 extern crate rocket;
 
+mod error;
 mod pool;
 mod routes;
+mod session;
 
 async fn run_migrations(rocket: Rocket<Build>) -> fairing::Result {
     let conn = &Db::fetch(&rocket).unwrap().conn;
@@ -22,7 +24,14 @@ pub(crate) fn rocket() -> Rocket<Build> {
     rocket::build()
         .attach(Db::init())
         .attach(AdHoc::try_on_ignite("Migrations", run_migrations))
-        .mount("/api", routes![routes::health::health])
+        .mount(
+            "/api",
+            routes![
+                routes::health::health,
+                routes::screen::create_screen,
+                routes::screen::list_screens
+            ],
+        )
 }
 
 #[rocket::main]

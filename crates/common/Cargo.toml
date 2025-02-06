@@ -1,0 +1,12 @@
+[package]
+name = "common"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+entity = { path = "../entity", optional = true }
+serde = { version = "1.0.217", features = ["derive"] }
+
+[features]
+entity = ["dep:entity"]
