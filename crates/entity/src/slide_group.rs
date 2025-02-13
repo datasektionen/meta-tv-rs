@@ -14,6 +14,7 @@ pub struct Model {
     pub start_date: DateTime,
     pub end_date: Option<DateTime>,
     pub archive_date: Option<DateTime>,
+    pub published: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
