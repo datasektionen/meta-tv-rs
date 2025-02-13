@@ -7,3 +7,5 @@ pub mod screen;
 pub mod sea_orm_active_enums;
 pub mod slide;
 pub mod slide_group;
+
+pub use sea_orm;

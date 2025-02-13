@@ -1,3 +1,4 @@
+use entity::sea_orm::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -27,4 +28,27 @@ impl From<entity::screen::Model> for ScreenDto {
 pub struct CreateScreenDto {
     pub name: String,
     pub position: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct SlideGroupDto {
+    pub id: i32,
+    pub title: String,
+    pub priority: i32,
+    pub hidden: bool,
+    pub created_by: String,
+    pub start_date: DateTimeUtc,
+    pub end_date: Option<DateTimeUtc>,
+    pub archive_date: Option<DateTimeUtc>,
+    pub published: bool,
+    // TODO: slide group
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct CreateSlideGroupDto {
+    pub title: String,
+    pub priority: i32,
+    pub hidden: bool,
+    pub start_date: DateTimeUtc,
+    pub end_date: Option<DateTimeUtc>,
 }
