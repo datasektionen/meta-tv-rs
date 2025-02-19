@@ -82,6 +82,25 @@ pub async fn update_slide_group(
     Ok(Status::NoContent)
 }
 
+#[put("/slide-group/<id>/publish")]
+pub async fn publish_slide_group(
+    _user: User, // ensure logged in
+    conn: Connection<'_, Db>,
+    id: i32,
+) -> Result<Status, AppError> {
+    let db = conn.into_inner();
+
+    entity::slide_group::ActiveModel {
+        id: Set(id),
+        published: Set(true),
+        ..Default::default()
+    }
+    .update(db)
+    .await?;
+
+    Ok(Status::NoContent)
+}
+
 #[cfg(test)]
 mod tests {
     use common::dtos::{CreateSlideGroupDto, SlideGroupDto};
@@ -170,6 +189,45 @@ mod tests {
                 end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
                 archive_date: None,
                 published: false,
+            }])
+        );
+    }
+
+    #[test]
+    fn publish_slide_group() {
+        let client = Client::tracked(crate::rocket()).unwrap();
+
+        let response = client
+            .post("/api/slide-group")
+            .json(&CreateSlideGroupDto {
+                title: "Lorem Ipsum".to_string(),
+                priority: 0,
+                hidden: false,
+                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
+                end_date: None,
+            })
+            .dispatch();
+        assert_eq!(response.status(), Status::Created);
+        assert_eq!(response.into_string(), None);
+
+        let response = client.put("/api/slide-group/1/publish").dispatch();
+        assert_eq!(response.status(), Status::NoContent);
+        assert_eq!(response.into_string(), None);
+
+        let response = client.get("/api/slide-group").dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert_eq!(
+            response.into_json(),
+            Some(vec![SlideGroupDto {
+                id: 1,
+                title: "Lorem Ipsum".to_string(),
+                priority: 0,
+                hidden: false,
+                created_by: "johndoe".to_string(), // TODO
+                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
+                end_date: None,
+                archive_date: None,
+                published: true,
             }])
         );
     }
