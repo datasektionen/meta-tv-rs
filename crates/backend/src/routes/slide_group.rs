@@ -58,6 +58,30 @@ pub async fn create_slide_group(
     Ok(Status::Created)
 }
 
+#[put("/slide-group/<id>", data = "<slide_group>")]
+pub async fn update_slide_group(
+    _user: User, // ensure logged in
+    conn: Connection<'_, Db>,
+    id: i32,
+    slide_group: Json<CreateSlideGroupDto>,
+) -> Result<Status, AppError> {
+    let db = conn.into_inner();
+
+    entity::slide_group::ActiveModel {
+        id: Set(id),
+        title: Set(slide_group.title.clone()),
+        priority: Set(slide_group.priority),
+        hidden: Set(slide_group.hidden),
+        start_date: Set(slide_group.start_date.naive_utc()),
+        end_date: Set(slide_group.end_date.as_ref().map(|d| d.naive_utc())),
+        ..Default::default()
+    }
+    .update(db)
+    .await?;
+
+    Ok(Status::NoContent)
+}
+
 #[cfg(test)]
 mod tests {
     use common::dtos::{CreateSlideGroupDto, SlideGroupDto};
@@ -94,6 +118,56 @@ mod tests {
                 created_by: "johndoe".to_string(), // TODO
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
+                archive_date: None,
+                published: false,
+            }])
+        );
+    }
+
+    #[test]
+    fn update_and_list_slide_group() {
+        let client = Client::tracked(crate::rocket()).unwrap();
+
+        let response = client
+            .post("/api/slide-group")
+            .json(&CreateSlideGroupDto {
+                title: "Lorem Ipsum".to_string(),
+                priority: 0,
+                hidden: false,
+                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
+                end_date: None,
+            })
+            .dispatch();
+        assert_eq!(response.status(), Status::Created);
+        assert_eq!(response.into_string(), None);
+
+        // TODO change user for update to test created_by
+
+        let response = client
+            .put("/api/slide-group/1")
+            .json(&CreateSlideGroupDto {
+                title: "Lorem Ipsum".to_string(),
+                priority: 1,
+                hidden: false,
+                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
+                end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
+            })
+            .dispatch();
+        assert_eq!(response.status(), Status::NoContent);
+        assert_eq!(response.into_string(), None);
+
+        let response = client.get("/api/slide-group").dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert_eq!(
+            response.into_json(),
+            Some(vec![SlideGroupDto {
+                id: 1,
+                title: "Lorem Ipsum".to_string(),
+                priority: 1,
+                hidden: false,
+                created_by: "johndoe".to_string(), // TODO
+                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
+                end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
                 archive_date: None,
                 published: false,
             }])
