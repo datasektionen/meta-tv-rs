@@ -1,4 +1,4 @@
-use common::dtos::{CreateScreenDto, CreateSlideGroupDto, ScreenDto, SlideGroupDto};
+use common::dtos::{CreateSlideGroupDto, SlideGroupDto};
 use rocket::{http::Status, serde::json::Json};
 use sea_orm::{ActiveModelTrait, EntityTrait, QueryOrder, Set};
 use sea_orm_rocket::Connection;
@@ -33,21 +33,21 @@ pub async fn list_slide_groups(
     Ok(Json(groups))
 }
 
-#[post("/slide-group", data = "<screen>")]
+#[post("/slide-group", data = "<slide_group>")]
 pub async fn create_slide_group(
     user: User,
     conn: Connection<'_, Db>,
-    screen: Json<CreateSlideGroupDto>,
+    slide_group: Json<CreateSlideGroupDto>,
 ) -> Result<Status, AppError> {
     let db = conn.into_inner();
 
     entity::slide_group::ActiveModel {
-        title: Set(screen.title.clone()),
-        priority: Set(screen.priority),
-        hidden: Set(screen.hidden),
+        title: Set(slide_group.title.clone()),
+        priority: Set(slide_group.priority),
+        hidden: Set(slide_group.hidden),
         created_by: Set(user.username),
-        start_date: Set(screen.start_date.naive_utc()),
-        end_date: Set(screen.end_date.as_ref().map(|d| d.naive_utc())),
+        start_date: Set(slide_group.start_date.naive_utc()),
+        end_date: Set(slide_group.end_date.as_ref().map(|d| d.naive_utc())),
         archive_date: Set(None),
         published: Set(false),
         ..Default::default()
