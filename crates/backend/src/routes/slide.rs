@@ -125,16 +125,19 @@ mod tests {
                         id: 1,
                         position: 1,
                         archive_date: None,
+                        content: vec![],
                     },
                     SlideDto {
                         id: 2,
                         position: 2,
                         archive_date: None,
+                        content: vec![],
                     },
                     SlideDto {
                         id: 3,
                         position: 3,
                         archive_date: None,
+                        content: vec![],
                     }
                 ],
             }])
@@ -179,16 +182,19 @@ mod tests {
                         id: 2,
                         position: 3,
                         archive_date: None,
+                        content: vec![],
                     },
                     SlideDto {
                         id: 3,
                         position: 3,
                         archive_date: None,
+                        content: vec![],
                     },
                     SlideDto {
                         id: 1,
                         position: 5,
                         archive_date: None,
+                        content: vec![],
                     },
                 ],
             }])

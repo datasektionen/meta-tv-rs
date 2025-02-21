@@ -1,4 +1,4 @@
-use common::dtos::{CreateSlideGroupDto, SlideDto, SlideGroupDto};
+use common::dtos::{ContentDto, CreateSlideGroupDto, SlideDto, SlideGroupDto};
 use rocket::{http::Status, serde::json::Json};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, TransactionTrait,
@@ -48,11 +48,20 @@ pub async fn list_slide_groups(
             published: group.published,
             slides: slides
                 .into_iter()
-                .map(|(slide, _)| SlideDto {
+                .map(|(slide, content)| SlideDto {
                     id: slide.id,
                     position: slide.position,
                     archive_date: slide.archive_date.map(|d| d.and_utc()),
-                    // TODO: add content
+                    content: content
+                        .into_iter()
+                        .map(|content| ContentDto {
+                            id: content.id,
+                            screen: content.screen,
+                            content_type: content.content_type.into(),
+                            file_path: content.file_path,
+                            archive_date: content.archive_date.map(|d| d.and_utc()),
+                        })
+                        .collect(),
                 })
                 .collect(),
         })

@@ -76,5 +76,48 @@ pub struct SlideDto {
     pub id: i32,
     pub position: i32,
     pub archive_date: Option<DateTimeUtc>,
-    // TODO: content
+    pub content: Vec<ContentDto>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct CreateContentDto {
+    pub slide: i32,
+    pub screen: i32,
+    pub content_type: ContentType,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct ContentDto {
+    pub id: i32,
+    pub screen: i32,
+    pub content_type: ContentType,
+    pub file_path: String,
+    pub archive_date: Option<DateTimeUtc>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+pub enum ContentType {
+    Html,
+    Image,
+    Video,
+}
+
+impl From<ContentType> for entity::sea_orm_active_enums::ContentType {
+    fn from(value: ContentType) -> Self {
+        match value {
+            ContentType::Html => Self::Html,
+            ContentType::Image => Self::Image,
+            ContentType::Video => Self::Video,
+        }
+    }
+}
+
+impl From<entity::sea_orm_active_enums::ContentType> for ContentType {
+    fn from(value: entity::sea_orm_active_enums::ContentType) -> Self {
+        match value {
+            entity::sea_orm_active_enums::ContentType::Html => Self::Html,
+            entity::sea_orm_active_enums::ContentType::Image => Self::Image,
+            entity::sea_orm_active_enums::ContentType::Video => Self::Video,
+        }
+    }
 }

@@ -1,3 +1,4 @@
+use files::FilesInitializer;
 use migration::MigratorTrait;
 use pool::Db;
 use rocket::{
@@ -10,6 +11,7 @@ use sea_orm_rocket::Database;
 extern crate rocket;
 
 mod error;
+mod files;
 mod pool;
 mod routes;
 mod session;
@@ -22,11 +24,13 @@ async fn run_migrations(rocket: Rocket<Build>) -> fairing::Result {
 
 pub(crate) fn rocket() -> Rocket<Build> {
     rocket::build()
+        .attach(FilesInitializer)
         .attach(Db::init())
         .attach(AdHoc::try_on_ignite("Migrations", run_migrations))
         .mount(
             "/api",
             routes![
+                routes::content::create_content,
                 routes::health::health,
                 routes::screen::create_screen,
                 routes::screen::list_screens,
