@@ -1,3 +1,8 @@
+[default]
+# Set through env variable if preferred:
+# ROCKET_UPLOAD_DIR=<path>
+upload_dir = "./upload"
+
 [default.databases.sea_orm]
 # Set through env variable if preferred:
 # ROCKET_DATABASES={sea_orm={url="postgresql://localhost/metatv"}}

@@ -11,20 +11,32 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum AppError {
+    #[error("uploaded file exceeds maximum allowed size (max is {0} bytes)")]
+    FileTooBig(u64),
+    #[error("screen not found")]
+    ScreenNotFound,
     #[error("slide not found")]
     SlideNotFound,
     #[error("slide is archived and can't be edited")]
     SlideArchived,
     #[error("database error: {0}")]
     DatabaseError(#[from] DbErr),
+    #[error("io error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("internal error: {0}")]
+    InternalError(&'static str),
 }
 
 impl AppError {
     fn status(&self) -> Status {
         match self {
+            AppError::FileTooBig(_) => Status::PayloadTooLarge,
+            AppError::ScreenNotFound => Status::NotFound,
             AppError::SlideNotFound => Status::NotFound,
             AppError::SlideArchived => Status::Forbidden,
             AppError::DatabaseError(_) => Status::InternalServerError,
+            AppError::IoError(_) => Status::InternalServerError,
+            AppError::InternalError(_) => Status::InternalServerError,
         }
     }
 }

@@ -78,3 +78,17 @@ pub struct SlideDto {
     pub archive_date: Option<DateTimeUtc>,
     // TODO: content
 }
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct CreateContentDto {
+    pub slide: i32,
+    pub screen: i32,
+    pub content_type: ContentType,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub enum ContentType {
+    Html,
+    Image,
+    Video,
+}
