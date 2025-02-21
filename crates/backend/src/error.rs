@@ -11,6 +11,10 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum AppError {
+    #[error("slide not found")]
+    SlideNotFound,
+    #[error("slide is archived and can't be edited")]
+    SlideArchived,
     #[error("database error: {0}")]
     DatabaseError(#[from] DbErr),
 }
@@ -18,6 +22,8 @@ pub enum AppError {
 impl AppError {
     fn status(&self) -> Status {
         match self {
+            AppError::SlideNotFound => Status::NotFound,
+            AppError::SlideArchived => Status::Forbidden,
             AppError::DatabaseError(_) => Status::InternalServerError,
         }
     }

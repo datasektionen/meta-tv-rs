@@ -30,6 +30,8 @@ pub(crate) fn rocket() -> Rocket<Build> {
                 routes::health::health,
                 routes::screen::create_screen,
                 routes::screen::list_screens,
+                routes::slide::create_slide,
+                routes::slide::bulk_move_slides,
                 routes::slide_group::create_slide_group,
                 routes::slide_group::list_slide_groups,
                 routes::slide_group::publish_slide_group,

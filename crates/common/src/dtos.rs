@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use entity::sea_orm::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -25,6 +27,11 @@ impl From<entity::screen::Model> for ScreenDto {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct CreatedDto {
+    pub id: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct CreateScreenDto {
     pub name: String,
     pub position: i32,
@@ -41,7 +48,7 @@ pub struct SlideGroupDto {
     pub end_date: Option<DateTimeUtc>,
     pub archive_date: Option<DateTimeUtc>,
     pub published: bool,
-    // TODO: slide group
+    pub slides: Vec<SlideDto>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -51,4 +58,23 @@ pub struct CreateSlideGroupDto {
     pub hidden: bool,
     pub start_date: DateTimeUtc,
     pub end_date: Option<DateTimeUtc>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct CreateSlideDto {
+    pub position: i32,
+    pub slide_group: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct MoveSlidesDto {
+    pub new_positions: HashMap<i32, i32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct SlideDto {
+    pub id: i32,
+    pub position: i32,
+    pub archive_date: Option<DateTimeUtc>,
+    // TODO: content
 }

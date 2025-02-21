@@ -1,6 +1,8 @@
-use common::dtos::{CreateSlideGroupDto, SlideGroupDto};
+use common::dtos::{CreateSlideGroupDto, SlideDto, SlideGroupDto};
 use rocket::{http::Status, serde::json::Json};
-use sea_orm::{ActiveModelTrait, EntityTrait, QueryOrder, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, Set, TransactionTrait,
+};
 use sea_orm_rocket::Connection;
 
 use crate::{error::AppError, pool::Db, session::User};
@@ -11,26 +13,52 @@ pub async fn list_slide_groups(
 ) -> Result<Json<Vec<SlideGroupDto>>, AppError> {
     let db = conn.into_inner();
 
+    // use transaction to ensure data is consistent
+    let txn = db.begin().await?;
+
     let groups = entity::slide_group::Entity::find()
         .order_by_asc(entity::slide_group::Column::Id)
-        .all(db)
-        .await?
-        .into_iter()
-        // TODO fetch slides and content
-        .map(|row| SlideGroupDto {
-            id: row.id,
-            title: row.title,
-            priority: row.priority,
-            hidden: row.hidden,
-            created_by: row.created_by,
-            start_date: row.start_date.and_utc(),
-            end_date: row.end_date.map(|d| d.and_utc()),
-            archive_date: row.archive_date.map(|d| d.and_utc()),
-            published: row.published,
-        })
-        .collect::<Vec<_>>();
+        .filter(entity::slide_group::Column::ArchiveDate.is_null())
+        .all(&txn)
+        .await?;
 
-    Ok(Json(groups))
+    // TODO: make this run in parallel
+    let mut res = Vec::with_capacity(groups.len());
+    for group in groups {
+        let slides = entity::slide::Entity::find()
+            .order_by_asc(entity::slide::Column::Position)
+            .order_by_asc(entity::slide::Column::Id)
+            .order_by_asc(entity::content::Column::Id)
+            .find_with_related(entity::content::Entity)
+            .filter(entity::slide::Column::Group.eq(group.id))
+            .filter(entity::slide::Column::ArchiveDate.is_null())
+            .filter(entity::content::Column::ArchiveDate.is_null())
+            .all(&txn)
+            .await?;
+
+        res.push(SlideGroupDto {
+            id: group.id,
+            title: group.title,
+            priority: group.priority,
+            hidden: group.hidden,
+            created_by: group.created_by,
+            start_date: group.start_date.and_utc(),
+            end_date: group.end_date.map(|d| d.and_utc()),
+            archive_date: group.archive_date.map(|d| d.and_utc()),
+            published: group.published,
+            slides: slides
+                .into_iter()
+                .map(|(slide, _)| SlideDto {
+                    id: slide.id,
+                    position: slide.position,
+                    archive_date: slide.archive_date.map(|d| d.and_utc()),
+                    // TODO: add content
+                })
+                .collect(),
+        })
+    }
+
+    Ok(Json(res))
 }
 
 #[post("/slide-group", data = "<slide_group>")]
@@ -139,6 +167,7 @@ mod tests {
                 end_date: None,
                 archive_date: None,
                 published: false,
+                slides: vec![],
             }])
         );
     }
@@ -189,6 +218,7 @@ mod tests {
                 end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
                 archive_date: None,
                 published: false,
+                slides: vec![],
             }])
         );
     }
@@ -228,6 +258,7 @@ mod tests {
                 end_date: None,
                 archive_date: None,
                 published: true,
+                slides: vec![],
             }])
         );
     }
