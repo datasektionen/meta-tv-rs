@@ -135,6 +135,9 @@ pub async fn update_slide_group(
     slide_group: Json<CreateSlideGroupDto>,
 ) -> Result<Status, AppError> {
     let db = conn.into_inner();
+    let txn = db.begin().await?;
+
+    get_non_archived_slide_group(id, &txn).await?;
 
     entity::slide_group::ActiveModel {
         id: Set(id),
@@ -145,8 +148,10 @@ pub async fn update_slide_group(
         end_date: Set(slide_group.end_date.as_ref().map(|d| d.naive_utc())),
         ..Default::default()
     }
-    .update(db)
+    .update(&txn)
     .await?;
+
+    txn.commit().await?;
 
     Ok(Status::NoContent)
 }
@@ -158,14 +163,19 @@ pub async fn publish_slide_group(
     id: i32,
 ) -> Result<Status, AppError> {
     let db = conn.into_inner();
+    let txn = db.begin().await?;
+
+    get_non_archived_slide_group(id, &txn).await?;
 
     entity::slide_group::ActiveModel {
         id: Set(id),
         published: Set(true),
         ..Default::default()
     }
-    .update(db)
+    .update(&txn)
     .await?;
+
+    txn.commit().await?;
 
     Ok(Status::NoContent)
 }
@@ -179,14 +189,7 @@ pub async fn archive_slide_group(
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
-    let group = entity::slide_group::Entity::find_by_id(id)
-        .one(&txn)
-        .await?
-        .ok_or(AppError::SlideGroupNotFound)?;
-
-    if group.archive_date.is_some() {
-        return Err(AppError::SlideGroupArchived);
-    }
+    get_non_archived_slide_group(id, &txn).await?;
 
     let now = chrono::Utc::now().naive_utc();
 
@@ -201,6 +204,22 @@ pub async fn archive_slide_group(
     txn.commit().await?;
 
     Ok(Status::NoContent)
+}
+
+async fn get_non_archived_slide_group(
+    id: i32,
+    txn: &DatabaseTransaction,
+) -> Result<entity::slide_group::Model, AppError> {
+    let group = entity::slide_group::Entity::find_by_id(id)
+        .one(txn)
+        .await?
+        .ok_or(AppError::SlideGroupNotFound)?;
+
+    if group.archive_date.is_some() {
+        Err(AppError::SlideGroupArchived)
+    } else {
+        Ok(group)
+    }
 }
 
 #[cfg(test)]
@@ -343,6 +362,46 @@ mod tests {
     }
 
     #[test]
+    fn update_slide_group_not_found() {
+        let client = Client::tracked(crate::rocket()).unwrap();
+
+        let response = client
+            .put("/api/slide-group/1")
+            .json(&CreateSlideGroupDto {
+                title: "Lorem Ipsum".to_string(),
+                priority: 1,
+                hidden: false,
+                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
+                end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
+            })
+            .dispatch();
+        assert_app_error!(response, AppError::SlideGroupNotFound);
+    }
+
+    #[test]
+    fn update_slide_group_archived() {
+        let client = Client::tracked(crate::rocket()).unwrap();
+
+        util_create_slide_group(&client);
+
+        let response = client.delete("/api/slide-group/1").dispatch();
+        assert_eq!(response.status(), Status::NoContent);
+        assert_eq!(response.into_string(), None);
+
+        let response = client
+            .put("/api/slide-group/1")
+            .json(&CreateSlideGroupDto {
+                title: "Lorem Ipsum".to_string(),
+                priority: 1,
+                hidden: false,
+                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
+                end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
+            })
+            .dispatch();
+        assert_app_error!(response, AppError::SlideGroupArchived);
+    }
+
+    #[test]
     fn publish_slide_group() {
         let client = Client::tracked(crate::rocket()).unwrap();
 
@@ -379,6 +438,28 @@ mod tests {
                 slides: vec![],
             }])
         );
+    }
+
+    #[test]
+    fn publish_slide_group_not_found() {
+        let client = Client::tracked(crate::rocket()).unwrap();
+
+        let response = client.put("/api/slide-group/1/publish").dispatch();
+        assert_app_error!(response, AppError::SlideGroupNotFound);
+    }
+
+    #[test]
+    fn publish_slide_group_archived() {
+        let client = Client::tracked(crate::rocket()).unwrap();
+
+        util_create_slide_group(&client);
+
+        let response = client.delete("/api/slide-group/1").dispatch();
+        assert_eq!(response.status(), Status::NoContent);
+        assert_eq!(response.into_string(), None);
+
+        let response = client.put("/api/slide-group/1/publish").dispatch();
+        assert_app_error!(response, AppError::SlideGroupArchived);
     }
 
     #[test]
