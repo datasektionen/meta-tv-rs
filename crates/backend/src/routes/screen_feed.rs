@@ -27,7 +27,7 @@ pub async fn get_screen_feed(
     EventStream! {
         let db = conn.into_inner();
         // TODO use queue/notify instead of interval
-        let mut interval = time::interval(Duration::from_secs(1));
+        let mut interval = time::interval(Duration::from_secs(60));
         loop {
             select! {
                 _ = interval.tick() => {
