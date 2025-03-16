@@ -17,6 +17,17 @@ macro_rules! assert_created {
     };
 }
 
+#[macro_export]
+macro_rules! assert_app_error {
+    ($response: expr, $app_error: expr) => {
+        assert_eq!($response.status(), $app_error.status());
+        assert_eq!(
+            $response.into_json(),
+            Some(common::dtos::AppErrorDto::from($app_error))
+        );
+    };
+}
+
 pub fn util_create_slide_group(client: &Client) {
     let response = client
         .post("/api/slide-group")

@@ -1,8 +1,8 @@
 use common::dtos::{ContentDto, CreateSlideGroupDto, SlideDto, SlideGroupDto};
 use rocket::{http::Status, serde::json::Json};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseTransaction, EntityTrait, QueryFilter, QueryOrder,
-    QueryTrait, Set, TransactionTrait,
+    sqlx::types::chrono, ActiveModelTrait, ColumnTrait, DatabaseTransaction, EntityTrait,
+    QueryFilter, QueryOrder, QueryTrait, Set, TransactionTrait,
 };
 use sea_orm_rocket::Connection;
 
@@ -170,6 +170,39 @@ pub async fn publish_slide_group(
     Ok(Status::NoContent)
 }
 
+#[delete("/slide-group/<id>")]
+pub async fn archive_slide_group(
+    _user: User, // ensure logged in
+    conn: Connection<'_, Db>,
+    id: i32,
+) -> Result<Status, AppError> {
+    let db = conn.into_inner();
+    let txn = db.begin().await?;
+
+    let group = entity::slide_group::Entity::find_by_id(id)
+        .one(&txn)
+        .await?
+        .ok_or(AppError::SlideGroupNotFound)?;
+
+    if group.archive_date.is_some() {
+        return Err(AppError::SlideGroupArchived);
+    }
+
+    let now = chrono::Utc::now().naive_utc();
+
+    entity::slide_group::ActiveModel {
+        id: Set(id),
+        archive_date: Set(Some(now)),
+        ..Default::default()
+    }
+    .update(&txn)
+    .await?;
+
+    txn.commit().await?;
+
+    Ok(Status::NoContent)
+}
+
 #[cfg(test)]
 mod tests {
     use common::dtos::{CreateSlideGroupDto, SlideGroupDto};
@@ -177,7 +210,9 @@ mod tests {
     use rocket::local::blocking::Client;
     use sea_orm::prelude::DateTimeUtc;
 
-    use crate::assert_created;
+    use crate::error::AppError;
+    use crate::test_utils::util_create_slide_group;
+    use crate::{assert_app_error, assert_created};
 
     #[test]
     fn create_and_list_slide_group() {
@@ -336,5 +371,54 @@ mod tests {
                 slides: vec![],
             }])
         );
+    }
+
+    #[test]
+    fn archive_slide_group() {
+        let client = Client::tracked(crate::rocket()).unwrap();
+
+        util_create_slide_group(&client);
+
+        let response = client.delete("/api/slide-group/1").dispatch();
+        assert_eq!(response.status(), Status::NoContent);
+        assert_eq!(response.into_string(), None);
+
+        let response = client.get("/api/slide-group").dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert_eq!(response.into_json(), Some(Vec::<SlideGroupDto>::new()));
+
+        let response = client.get("/api/slide-group/1").dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert!(matches!(
+            response.into_json(),
+            Some(SlideGroupDto {
+                id: 1,
+                archive_date: Some(_),
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn archive_slide_group_not_found() {
+        let client = Client::tracked(crate::rocket()).unwrap();
+
+        let response = client.delete("/api/slide-group/1").dispatch();
+        assert_app_error!(response, AppError::SlideGroupNotFound);
+    }
+
+    #[test]
+    fn archive_slide_group_already_archived() {
+        let client = Client::tracked(crate::rocket()).unwrap();
+
+        util_create_slide_group(&client);
+
+        let response = client.delete("/api/slide-group/1").dispatch();
+        assert_eq!(response.status(), Status::NoContent);
+        assert_eq!(response.into_string(), None);
+
+        // archiving again throws error
+        let response = client.delete("/api/slide-group/1").dispatch();
+        assert_app_error!(response, AppError::SlideGroupArchived);
     }
 }
