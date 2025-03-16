@@ -38,6 +38,7 @@ pub(crate) fn rocket() -> Rocket<Build> {
                 routes::slide::create_slide,
                 routes::slide::bulk_move_slides,
                 routes::slide_group::create_slide_group,
+                routes::slide_group::get_slide_group,
                 routes::slide_group::list_slide_groups,
                 routes::slide_group::publish_slide_group,
                 routes::slide_group::update_slide_group,

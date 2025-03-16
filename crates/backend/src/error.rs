@@ -15,6 +15,8 @@ pub enum AppError {
     FileTooBig(u64),
     #[error("screen not found")]
     ScreenNotFound,
+    #[error("slide group not found")]
+    SlideGroupNotFound,
     #[error("slide not found")]
     SlideNotFound,
     #[error("slide is archived and can't be edited")]
@@ -33,6 +35,7 @@ impl AppError {
             AppError::FileTooBig(_) => Status::PayloadTooLarge,
             AppError::ScreenNotFound => Status::NotFound,
             AppError::SlideNotFound => Status::NotFound,
+            AppError::SlideGroupNotFound => Status::NotFound,
             AppError::SlideArchived => Status::Forbidden,
             AppError::DatabaseError(_) => Status::InternalServerError,
             AppError::IoError(_) => Status::InternalServerError,
