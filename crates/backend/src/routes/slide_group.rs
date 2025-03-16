@@ -285,6 +285,14 @@ mod tests {
     }
 
     #[test]
+    fn get_slide_group_not_found() {
+        let client = Client::tracked(crate::rocket()).unwrap();
+
+        let response = client.get("/api/slide-group/1").dispatch();
+        assert_app_error!(response, AppError::SlideGroupNotFound);
+    }
+
+    #[test]
     fn update_and_list_slide_group() {
         let client = Client::tracked(crate::rocket()).unwrap();
 
