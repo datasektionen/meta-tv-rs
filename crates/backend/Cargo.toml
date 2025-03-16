@@ -6,6 +6,7 @@ default-run = "meta-tv-rs"
 
 [dependencies]
 anyhow = "1.0.95"
+chrono = "0.4.40"
 common = { path = "../common", features = ["entity"] }
 entity = { path = "../entity" }
 migration = { path = "../migration" }

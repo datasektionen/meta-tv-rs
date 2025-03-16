@@ -28,7 +28,7 @@ pub enum AppError {
 }
 
 impl AppError {
-    fn status(&self) -> Status {
+    pub fn status(&self) -> Status {
         match self {
             AppError::FileTooBig(_) => Status::PayloadTooLarge,
             AppError::ScreenNotFound => Status::NotFound,

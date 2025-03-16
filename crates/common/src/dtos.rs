@@ -121,3 +121,10 @@ impl From<entity::sea_orm_active_enums::ContentType> for ContentType {
         }
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct FeedEntryDto {
+    pub content_type: ContentType,
+    pub file_path: String,
+    pub duration: i32, // milliseconds
+}
