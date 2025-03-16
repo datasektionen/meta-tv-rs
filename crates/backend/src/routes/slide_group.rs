@@ -8,6 +8,8 @@ use sea_orm_rocket::Connection;
 
 use crate::{error::AppError, pool::Db, session::User};
 
+use super::{build_created_response, CreatedResponse};
+
 #[get("/slide-group")]
 pub async fn list_slide_groups(
     conn: Connection<'_, Db>,
@@ -105,10 +107,10 @@ pub async fn create_slide_group(
     user: User,
     conn: Connection<'_, Db>,
     slide_group: Json<CreateSlideGroupDto>,
-) -> Result<Status, AppError> {
+) -> Result<CreatedResponse, AppError> {
     let db = conn.into_inner();
 
-    entity::slide_group::ActiveModel {
+    let group = entity::slide_group::ActiveModel {
         title: Set(slide_group.title.clone()),
         priority: Set(slide_group.priority),
         hidden: Set(slide_group.hidden),
@@ -119,10 +121,10 @@ pub async fn create_slide_group(
         published: Set(false),
         ..Default::default()
     }
-    .save(db)
+    .insert(db)
     .await?;
 
-    Ok(Status::Created)
+    Ok(build_created_response("/api/slide-group", group.id))
 }
 
 #[put("/slide-group/<id>", data = "<slide_group>")]
@@ -175,6 +177,8 @@ mod tests {
     use rocket::local::blocking::Client;
     use sea_orm::prelude::DateTimeUtc;
 
+    use crate::assert_created;
+
     #[test]
     fn create_and_list_slide_group() {
         let client = Client::tracked(crate::rocket()).unwrap();
@@ -189,8 +193,7 @@ mod tests {
                 end_date: None,
             })
             .dispatch();
-        assert_eq!(response.status(), Status::Created);
-        assert_eq!(response.into_string(), None);
+        assert_created!(response, "/api/slide-group", 1);
 
         let response = client.get("/api/slide-group").dispatch();
         assert_eq!(response.status(), Status::Ok);
@@ -225,8 +228,7 @@ mod tests {
                 end_date: None,
             })
             .dispatch();
-        assert_eq!(response.status(), Status::Created);
-        assert_eq!(response.into_string(), None);
+        assert_created!(response, "/api/slide-group", 1);
 
         let response = client.get("/api/slide-group/1").dispatch();
         assert_eq!(response.status(), Status::Ok);
@@ -261,8 +263,7 @@ mod tests {
                 end_date: None,
             })
             .dispatch();
-        assert_eq!(response.status(), Status::Created);
-        assert_eq!(response.into_string(), None);
+        assert_created!(response, "/api/slide-group", 1);
 
         // TODO change user for update to test created_by
 
@@ -312,8 +313,7 @@ mod tests {
                 end_date: None,
             })
             .dispatch();
-        assert_eq!(response.status(), Status::Created);
-        assert_eq!(response.into_string(), None);
+        assert_created!(response, "/api/slide-group", 1);
 
         let response = client.put("/api/slide-group/1/publish").dispatch();
         assert_eq!(response.status(), Status::NoContent);

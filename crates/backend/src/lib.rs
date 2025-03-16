@@ -15,6 +15,8 @@ mod files;
 mod pool;
 mod routes;
 mod session;
+#[cfg(test)]
+mod test_utils;
 
 async fn run_migrations(rocket: Rocket<Build>) -> fairing::Result {
     let conn = &Db::fetch(&rocket).unwrap().conn;

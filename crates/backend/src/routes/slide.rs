@@ -1,16 +1,18 @@
-use common::dtos::{CreateSlideDto, CreatedDto, MoveSlidesDto};
+use common::dtos::{CreateSlideDto, MoveSlidesDto};
 use rocket::{http::Status, serde::json::Json};
 use sea_orm::{ActiveModelTrait, EntityTrait, Set, TransactionTrait};
 use sea_orm_rocket::Connection;
 
 use crate::{error::AppError, pool::Db, session::User};
 
+use super::{build_created_response, CreatedResponse};
+
 #[post("/slide", data = "<slide>")]
 pub async fn create_slide(
     _user: User, // for access control only
     conn: Connection<'_, Db>,
     slide: Json<CreateSlideDto>,
-) -> Result<Json<CreatedDto>, AppError> {
+) -> Result<CreatedResponse, AppError> {
     let db = conn.into_inner();
 
     let res = entity::slide::ActiveModel {
@@ -21,7 +23,8 @@ pub async fn create_slide(
     .insert(db)
     .await?;
 
-    Ok(Json(CreatedDto { id: res.id }))
+    // NOTE: non-existent route
+    Ok(build_created_response("/api/slide", res.id))
 }
 
 #[post("/slide/bulk-move", data = "<positions>")]
@@ -61,40 +64,12 @@ pub async fn bulk_move_slides(
 
 #[cfg(test)]
 mod tests {
-    use common::dtos::{
-        AppErrorDto, CreateSlideDto, CreateSlideGroupDto, CreatedDto, MoveSlidesDto, SlideDto,
-        SlideGroupDto,
-    };
+    use common::dtos::{AppErrorDto, MoveSlidesDto, SlideDto, SlideGroupDto};
     use rocket::http::Status;
     use rocket::local::blocking::Client;
     use sea_orm::prelude::DateTimeUtc;
 
-    fn util_create_slide_group(client: &Client) {
-        let response = client
-            .post("/api/slide-group")
-            .json(&CreateSlideGroupDto {
-                title: "Lorem Ipsum".to_string(),
-                priority: 0,
-                hidden: false,
-                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
-                end_date: None,
-            })
-            .dispatch();
-        assert_eq!(response.status(), Status::Created);
-        assert_eq!(response.into_string(), None);
-    }
-
-    fn util_create_slide(client: &Client, id: i32, position: i32) {
-        let response = client
-            .post("/api/slide")
-            .json(&CreateSlideDto {
-                position,
-                slide_group: 1,
-            })
-            .dispatch();
-        assert_eq!(response.status(), Status::Ok);
-        assert_eq!(response.into_json(), Some(CreatedDto { id }));
-    }
+    use crate::test_utils::{util_create_slide, util_create_slide_group};
 
     #[test]
     fn create_slides_and_list_slide_groups() {

@@ -1,4 +1,4 @@
-use common::dtos::{CreateContentDto, CreatedDto};
+use common::dtos::CreateContentDto;
 use rocket::{data::Capped, form::Form, fs::TempFile, serde::json::Json, State};
 use sea_orm::{
     sqlx::types::chrono::Utc, ActiveModelTrait, ColumnTrait, EntityTrait, JoinType, QueryFilter,
@@ -7,6 +7,8 @@ use sea_orm::{
 use sea_orm_rocket::Connection;
 
 use crate::{error::AppError, files::Files, pool::Db, session::User};
+
+use super::{build_created_response, CreatedResponse};
 
 #[derive(FromForm)]
 pub(crate) struct Upload<'r> {
@@ -20,7 +22,7 @@ pub async fn create_content(
     conn: Connection<'_, Db>,
     files: &State<Files>,
     mut upload: Form<Upload<'_>>,
-) -> Result<Json<CreatedDto>, AppError> {
+) -> Result<CreatedResponse, AppError> {
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
@@ -70,66 +72,22 @@ pub async fn create_content(
 
     txn.commit().await?;
 
-    Ok(Json(CreatedDto { id: res.id }))
+    // NOTE: non-existent route
+    Ok(build_created_response("/api/content", res.id))
 }
 
 #[cfg(test)]
 mod tests {
     use common::dtos::{
-        AppErrorDto, ContentDto, ContentType, CreateContentDto, CreateScreenDto, CreateSlideDto,
-        CreateSlideGroupDto, CreatedDto, SlideDto, SlideGroupDto,
+        AppErrorDto, ContentDto, ContentType, CreateContentDto, SlideDto, SlideGroupDto,
     };
     use rocket::http::{self, Status};
     use rocket::local::blocking::Client;
     use rocket::serde::json;
     use sea_orm::prelude::DateTimeUtc;
 
-    fn util_create_screens(client: &Client) {
-        macro_rules! create_screen {
-            ($name: expr, $position: expr) => {
-                let response = client
-                    .post("/api/screen")
-                    .json(&CreateScreenDto {
-                        name: $name.to_string(),
-                        position: $position,
-                    })
-                    .dispatch();
-                assert_eq!(response.status(), Status::Created);
-                assert_eq!(response.into_string(), None);
-            };
-        }
-
-        create_screen!("Left", 0);
-        create_screen!("Center", 1);
-        create_screen!("Right", 2);
-    }
-
-    fn util_create_slide_group(client: &Client) {
-        let response = client
-            .post("/api/slide-group")
-            .json(&CreateSlideGroupDto {
-                title: "Lorem Ipsum".to_string(),
-                priority: 0,
-                hidden: false,
-                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
-                end_date: None,
-            })
-            .dispatch();
-        assert_eq!(response.status(), Status::Created);
-        assert_eq!(response.into_string(), None);
-    }
-
-    fn util_create_slide(client: &Client, id: i32, position: i32) {
-        let response = client
-            .post("/api/slide")
-            .json(&CreateSlideDto {
-                position,
-                slide_group: 1,
-            })
-            .dispatch();
-        assert_eq!(response.status(), Status::Ok);
-        assert_eq!(response.into_json(), Some(CreatedDto { id }));
-    }
+    use crate::assert_created;
+    use crate::test_utils::{util_create_screens, util_create_slide, util_create_slide_group};
 
     fn util_prepare_upload(data: &CreateContentDto, file: &str) -> (http::ContentType, String) {
         // There isn't a better way to test this :/
@@ -170,8 +128,7 @@ mod tests {
         };
         let (ct, body) = util_prepare_upload(&data, "<p>hello world</p>");
         let response = client.post("/api/content").header(ct).body(body).dispatch();
-        assert_eq!(response.status(), Status::Ok);
-        assert_eq!(response.into_json(), Some(CreatedDto { id: 1 }));
+        assert_created!(response, "/api/content", 1);
 
         let data = CreateContentDto {
             slide: 1,
@@ -180,8 +137,7 @@ mod tests {
         };
         let (ct, body) = util_prepare_upload(&data, "<p>lorem ipsum</p>");
         let response = client.post("/api/content").header(ct).body(body).dispatch();
-        assert_eq!(response.status(), Status::Ok);
-        assert_eq!(response.into_json(), Some(CreatedDto { id: 2 }));
+        assert_created!(response, "/api/content", 2);
 
         let response = client.get("/api/slide-group").dispatch();
         assert_eq!(response.status(), Status::Ok);
@@ -259,13 +215,11 @@ mod tests {
         };
         let (ct, body) = util_prepare_upload(&data, "<p>hello world</p>");
         let response = client.post("/api/content").header(ct).body(body).dispatch();
-        assert_eq!(response.status(), Status::Ok);
-        assert_eq!(response.into_json(), Some(CreatedDto { id: 1 }));
+        assert_created!(response, "/api/content", 1);
 
         let (ct, body) = util_prepare_upload(&data, "<p>lorem ipsum</p>");
         let response = client.post("/api/content").header(ct).body(body).dispatch();
-        assert_eq!(response.status(), Status::Ok);
-        assert_eq!(response.into_json(), Some(CreatedDto { id: 2 }));
+        assert_created!(response, "/api/content", 2);
 
         let response = client.get("/api/slide-group").dispatch();
         assert_eq!(response.status(), Status::Ok);
