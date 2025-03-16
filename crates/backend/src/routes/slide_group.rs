@@ -229,25 +229,15 @@ mod tests {
     use rocket::local::blocking::Client;
     use sea_orm::prelude::DateTimeUtc;
 
+    use crate::assert_app_error;
     use crate::error::AppError;
     use crate::test_utils::util_create_slide_group;
-    use crate::{assert_app_error, assert_created};
 
     #[test]
     fn create_and_list_slide_group() {
         let client = Client::tracked(crate::rocket()).unwrap();
 
-        let response = client
-            .post("/api/slide-group")
-            .json(&CreateSlideGroupDto {
-                title: "Lorem Ipsum".to_string(),
-                priority: 0,
-                hidden: false,
-                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
-                end_date: None,
-            })
-            .dispatch();
-        assert_created!(response, "/api/slide-group", 1);
+        util_create_slide_group(&client);
 
         let response = client.get("/api/slide-group").dispatch();
         assert_eq!(response.status(), Status::Ok);
@@ -272,17 +262,7 @@ mod tests {
     fn create_and_get_slide_group() {
         let client = Client::tracked(crate::rocket()).unwrap();
 
-        let response = client
-            .post("/api/slide-group")
-            .json(&CreateSlideGroupDto {
-                title: "Lorem Ipsum".to_string(),
-                priority: 0,
-                hidden: false,
-                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
-                end_date: None,
-            })
-            .dispatch();
-        assert_created!(response, "/api/slide-group", 1);
+        util_create_slide_group(&client);
 
         let response = client.get("/api/slide-group/1").dispatch();
         assert_eq!(response.status(), Status::Ok);
@@ -315,17 +295,7 @@ mod tests {
     fn update_and_list_slide_group() {
         let client = Client::tracked(crate::rocket()).unwrap();
 
-        let response = client
-            .post("/api/slide-group")
-            .json(&CreateSlideGroupDto {
-                title: "Lorem Ipsum".to_string(),
-                priority: 0,
-                hidden: false,
-                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
-                end_date: None,
-            })
-            .dispatch();
-        assert_created!(response, "/api/slide-group", 1);
+        util_create_slide_group(&client);
 
         // TODO change user for update to test created_by
 
@@ -405,17 +375,7 @@ mod tests {
     fn publish_slide_group() {
         let client = Client::tracked(crate::rocket()).unwrap();
 
-        let response = client
-            .post("/api/slide-group")
-            .json(&CreateSlideGroupDto {
-                title: "Lorem Ipsum".to_string(),
-                priority: 0,
-                hidden: false,
-                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
-                end_date: None,
-            })
-            .dispatch();
-        assert_created!(response, "/api/slide-group", 1);
+        util_create_slide_group(&client);
 
         let response = client.put("/api/slide-group/1/publish").dispatch();
         assert_eq!(response.status(), Status::NoContent);
