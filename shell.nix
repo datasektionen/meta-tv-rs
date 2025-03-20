@@ -11,6 +11,6 @@ pkgs.mkShell {
     trunk
     leptosfmt
     lld
-    tailwindcss
+    tailwindcss_4
   ];
 }
