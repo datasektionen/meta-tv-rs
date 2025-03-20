@@ -1142,12 +1142,15 @@ dependencies = [
 name = "frontend"
 version = "0.1.0"
 dependencies = [
+ "common",
  "console_error_panic_hook",
  "console_log",
+ "gloo-net",
  "leptos",
  "leptos_meta",
  "leptos_router",
  "log",
+ "thiserror 2.0.12",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",

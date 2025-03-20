@@ -27,3 +27,6 @@ addresses = ["127.0.0.1"]
 port = 5000
 # Open a browser tab once the initial build is complete.
 open = true
+
+[[proxy]]
+backend = "http://localhost:8000/api"
