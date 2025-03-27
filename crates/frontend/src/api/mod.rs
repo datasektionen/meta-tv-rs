@@ -39,3 +39,12 @@ pub async fn create_slide_group(slide_group: &CreateSlideGroupDto) -> Result<Cre
     )
     .await
 }
+
+pub async fn get_slide_group(id: i32) -> Result<SlideGroupDto, AppError> {
+    handle_response(
+        Request::get(&format!("/api/slide-group/{id}"))
+            .send()
+            .await?,
+    )
+    .await
+}
