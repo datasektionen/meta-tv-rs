@@ -1,4 +1,4 @@
-use common::dtos::{AppErrorDto, SlideGroupDto};
+use common::dtos::{AppErrorDto, CreateSlideGroupDto, CreatedDto, SlideGroupDto};
 use gloo_net::http::{Request, Response};
 use leptos::{logging, server_fn::serde::de::DeserializeOwned};
 use thiserror::Error;
@@ -28,4 +28,14 @@ async fn handle_response<T: DeserializeOwned>(response: Response) -> Result<T, A
 
 pub async fn list_slide_groups() -> Result<Vec<SlideGroupDto>, AppError> {
     handle_response(Request::get("/api/slide-group").send().await?).await
+}
+
+pub async fn create_slide_group(slide_group: &CreateSlideGroupDto) -> Result<CreatedDto, AppError> {
+    handle_response(
+        Request::post("/api/slide-group")
+            .json(slide_group)?
+            .send()
+            .await?,
+    )
+    .await
 }
