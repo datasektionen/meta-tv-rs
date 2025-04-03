@@ -1,6 +1,7 @@
 use crate::{
     api,
     components::{error::ErrorList, slide_group_options::SlideGroupOptions},
+    context::SlideGroupOptionsContext,
 };
 use leptos::prelude::*;
 use leptos_router::{hooks::use_params, params::Params};
@@ -14,6 +15,7 @@ struct EditSlideGroupParams {
 #[component]
 pub fn EditSlideGroup() -> impl IntoView {
     let params = use_params::<EditSlideGroupParams>();
+    let (is_editing_options, set_editing_options) = signal(false);
 
     let slide_group = LocalResource::new(move || {
         let id = params
@@ -24,6 +26,10 @@ pub fn EditSlideGroup() -> impl IntoView {
             .unwrap_or_default();
         async move { api::get_slide_group(id).await }
     });
+
+    let context = SlideGroupOptionsContext { slide_group };
+
+    provide_context(context);
 
     view! {
         <Transition fallback=|| view! { <div>Loading...</div> }>
@@ -36,7 +42,13 @@ pub fn EditSlideGroup() -> impl IntoView {
                         slide_group
                             .await
                             .map(|group| {
-                                view! { <SlideGroupOptions slide_group=group /> }
+                                view! {
+                                    <SlideGroupOptions
+                                        slide_group=Signal::derive(move || group.clone())
+                                        is_editing_options=is_editing_options
+                                        set_editing_options=set_editing_options
+                                    />
+                                }
                             })
                     })}
                 </div>

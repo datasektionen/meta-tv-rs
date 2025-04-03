@@ -6,6 +6,7 @@ use pages::{create_slide_group::CreateSlideGroup, slide_group::EditSlideGroup};
 // Modules
 mod api;
 mod components;
+mod context;
 mod pages;
 
 // Top-Level pages

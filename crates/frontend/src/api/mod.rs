@@ -26,6 +26,14 @@ async fn handle_response<T: DeserializeOwned>(response: Response) -> Result<T, A
     Ok(response.json().await?)
 }
 
+#[inline]
+async fn handle_blank_response(response: Response) -> Result<(), AppError> {
+    if response.status() >= 400 {
+        Err(response.json::<AppErrorDto>().await?)?;
+    }
+    Ok(())
+}
+
 pub async fn list_slide_groups() -> Result<Vec<SlideGroupDto>, AppError> {
     handle_response(Request::get("/api/slide-group").send().await?).await
 }
@@ -43,6 +51,19 @@ pub async fn create_slide_group(slide_group: &CreateSlideGroupDto) -> Result<Cre
 pub async fn get_slide_group(id: i32) -> Result<SlideGroupDto, AppError> {
     handle_response(
         Request::get(&format!("/api/slide-group/{id}"))
+            .send()
+            .await?,
+    )
+    .await
+}
+
+pub async fn update_slide_group(
+    id: i32,
+    slide_group: &CreateSlideGroupDto,
+) -> Result<(), AppError> {
+    handle_blank_response(
+        Request::put(&format!("/api/slide-group/{id}"))
+            .json(slide_group)?
             .send()
             .await?,
     )
