@@ -5,9 +5,9 @@ edition.workspace = true
 
 [dependencies]
 common = { path = "../common", features = ["entity"] }
-leptos = { version = "0.7", features = ["csr"] }
-leptos_meta = { version = "0.7" }
-leptos_router = { version = "0.7" }
+leptos = { version = "0.8.0-beta", features = ["csr"] }
+leptos_meta = { version = "0.8.0-beta" }
+leptos_router = { version = "0.8.0-beta" }
 console_log = "1"
 log = "0.4"
 console_error_panic_hook = "0.1"
