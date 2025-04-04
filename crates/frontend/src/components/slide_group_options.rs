@@ -176,6 +176,14 @@ fn SlideGroupViewOptions(
 
             {move || {
                 let group = slide_group.get();
+                (!group.published)
+                    .then(|| {
+                        view! { <SlideGroupPublishButton group_id=group.id /> }
+                    })
+            }}
+
+            {move || {
+                let group = slide_group.get();
                 view! {
                     <h1>{group.title}</h1>
                     <p>"Priority: " {move || fmt_bool(group.priority > 0)}</p>
@@ -188,5 +196,35 @@ fn SlideGroupViewOptions(
                 }
             }}
         </div>
+    }
+}
+
+#[component]
+fn SlideGroupPublishButton(#[prop()] group_id: i32) -> impl IntoView {
+    let publish_action = Action::new_local(move |_: &()| {
+        async move { api::publish_slide_group(group_id).await }
+    });
+
+    let page_context =
+        use_context::<SlideGroupOptionsContext>().expect("to have found the context");
+
+    let is_submitting = publish_action.pending();
+    let response = move || publish_action.value().get();
+    Effect::new(move || {
+        if response().map(|res| res.is_ok()).unwrap_or_default() {
+            page_context.slide_group.refetch();
+        }
+    });
+
+    view! {
+        {response}
+        <button
+            disabled=is_submitting
+            on:click=move |_| {
+                publish_action.dispatch(());
+            }
+        >
+            Publish
+        </button>
     }
 }

@@ -69,3 +69,12 @@ pub async fn update_slide_group(
     )
     .await
 }
+
+pub async fn publish_slide_group(id: i32) -> Result<(), AppError> {
+    handle_blank_response(
+        Request::put(&format!("/api/slide-group/{id}/publish"))
+            .send()
+            .await?,
+    )
+    .await
+}
