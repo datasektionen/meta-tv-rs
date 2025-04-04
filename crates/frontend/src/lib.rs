@@ -8,6 +8,7 @@ mod api;
 mod components;
 mod context;
 mod pages;
+mod utils;
 
 // Top-Level pages
 use crate::pages::home::Home;

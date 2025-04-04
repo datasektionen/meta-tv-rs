@@ -1,7 +1,13 @@
+use chrono::Utc;
 use common::dtos::{CreateSlideGroupDto, SlideGroupDto};
 use leptos::prelude::*;
 
-use crate::{api, components::error::ErrorList, context::SlideGroupOptionsContext};
+use crate::{
+    api,
+    components::error::ErrorList,
+    context::SlideGroupOptionsContext,
+    utils::datetime::{datetime_to_input, input_to_datetime},
+};
 
 /// Show options of slide group, keeping track if they have been saved or not.
 /// Should force data to be refreshed when edited.
@@ -41,6 +47,9 @@ fn SlideGroupEditOptions(
 ) -> impl IntoView {
     let title = RwSignal::new(slide_group.get().title);
     let priority = RwSignal::new(slide_group.get().priority);
+    let hidden = RwSignal::new(slide_group.get().hidden);
+    let start_date = RwSignal::new(slide_group.get().start_date);
+    let end_date = RwSignal::new(slide_group.get().end_date);
 
     let submit_action = Action::new_local(move |data: &CreateSlideGroupDto| {
         let id = slide_group.get().id;
@@ -54,7 +63,8 @@ fn SlideGroupEditOptions(
     let is_submitting = submit_action.pending();
     let response = move || submit_action.value().get();
     Effect::new(move || {
-        if response().is_some() {
+        // only go back if submitting has succeeded
+        if response().map(|res| res.is_ok()).unwrap_or_default() {
             page_context.slide_group.refetch();
             set_editing_options.set(false);
         }
@@ -67,13 +77,15 @@ fn SlideGroupEditOptions(
                 .dispatch(CreateSlideGroupDto {
                     title: title.read().to_string(),
                     priority: *priority.read(),
-                    hidden: slide_group.read().hidden,
-                    start_date: slide_group.read().start_date,
-                    end_date: slide_group.read().end_date,
+                    hidden: *hidden.read(),
+                    start_date: *start_date.read(),
+                    end_date: *end_date.read(),
                 });
         }>
             <fieldset disabled=is_submitting>
-                <button on:click=move |_| set_editing_options.set(false)>Cancel</button>
+                <button type="button" on:click=move |_| set_editing_options.set(false)>
+                    Cancel
+                </button>
                 <button type="submit" class="border disabled:text-gray-500">
                     Save
                 </button>
@@ -94,7 +106,57 @@ fn SlideGroupEditOptions(
                         priority.set(if ev.target().checked() { 1 } else { 0 })
                     }
                 />
+                <input
+                    class="border disabled:bg-gray-50 disabled:text-gray-500"
+                    type="checkbox"
+                    bind:checked=hidden
+                />
+                <p>Dates are in your local timezone</p>
+                <input
+                    class="border disabled:bg-gray-50 disabled:text-gray-500"
+                    type="datetime-local"
+                    step=1
+                    prop:value=move || { datetime_to_input(&start_date.get()) }
+                    on:change:target=move |ev| {
+                        if let Some(dt) = input_to_datetime(&ev.target().value()) {
+                            start_date.set(dt);
+                        }
+                    }
+                />
+                {move || match end_date.get() {
+                    Some(end_date_value) => {
+                        view! {
+                            <p>Dates are in your local timezone</p>
+                            <input
+                                class="border disabled:bg-gray-50 disabled:text-gray-500"
+                                type="datetime-local"
+                                step=1
+                                prop:value=move || { datetime_to_input(&end_date_value) }
+                                on:change:target=move |ev| {
+                                    if let Some(dt) = input_to_datetime(&ev.target().value()) {
+                                        end_date.set(Some(dt));
+                                    }
+                                }
+                            />
+                            <button type="button" on:click=move |_| { end_date.set(None) }>
+                                Remove end date
+                            </button>
+                        }
+                            .into_any()
+                    }
+                    None => {
 
+                        view! {
+                            <button
+                                type="button"
+                                on:click=move |_| { end_date.set(Some(Utc::now())) }
+                            >
+                                Add end date
+                            </button>
+                        }
+                            .into_any()
+                    }
+                }}
             </fieldset>
         </form>
     }
