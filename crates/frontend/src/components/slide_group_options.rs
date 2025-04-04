@@ -4,7 +4,7 @@ use leptos::prelude::*;
 
 use crate::{
     api,
-    components::error::ErrorList,
+    components::{error::ErrorList, slide::SlideList},
     context::SlideGroupOptionsContext,
     utils::{
         bool::fmt_bool,
@@ -195,15 +195,16 @@ fn SlideGroupViewOptions(
                     <p>"Published: " {move || fmt_bool(group.published)}</p>
                 }
             }}
+
+            <SlideList slide_group=slide_group />
         </div>
     }
 }
 
 #[component]
 fn SlideGroupPublishButton(#[prop()] group_id: i32) -> impl IntoView {
-    let publish_action = Action::new_local(move |_: &()| {
-        async move { api::publish_slide_group(group_id).await }
-    });
+    let publish_action =
+        Action::new_local(move |_: &()| async move { api::publish_slide_group(group_id).await });
 
     let page_context =
         use_context::<SlideGroupOptionsContext>().expect("to have found the context");

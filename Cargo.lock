@@ -1166,6 +1166,7 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "log",
+ "serde_json",
  "thiserror 2.0.12",
  "wasm-bindgen",
  "wasm-bindgen-test",
