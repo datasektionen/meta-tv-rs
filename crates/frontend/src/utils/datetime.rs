@@ -16,3 +16,14 @@ pub fn input_to_datetime(input: &str) -> Option<DateTime<Utc>> {
         .and_then(|dt| dt.and_local_timezone(Local).single())
         .map(|dt| dt.to_utc())
 }
+
+pub fn fmt_datetime(datetime: &DateTime<Utc>) -> String {
+    datetime.with_timezone(&Local).to_rfc2822()
+}
+
+pub fn fmt_datetime_opt(datetime: Option<&DateTime<Utc>>) -> String {
+    match datetime {
+        Some(dt) => fmt_datetime(dt),
+        None => "None".to_string(),
+    }
+}

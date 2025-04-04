@@ -6,7 +6,10 @@ use crate::{
     api,
     components::error::ErrorList,
     context::SlideGroupOptionsContext,
-    utils::datetime::{datetime_to_input, input_to_datetime},
+    utils::{
+        bool::fmt_bool,
+        datetime::{datetime_to_input, fmt_datetime, fmt_datetime_opt, input_to_datetime},
+    },
 };
 
 /// Show options of slide group, keeping track if they have been saved or not.
@@ -171,7 +174,19 @@ fn SlideGroupViewOptions(
         <div>
             <button on:click=move |_| set_editing_options.set(true)>Edit</button>
 
-            <h1>{move || slide_group.get().title}</h1>
+            {move || {
+                let group = slide_group.get();
+                view! {
+                    <h1>{group.title}</h1>
+                    <p>"Priority: " {move || fmt_bool(group.priority > 0)}</p>
+                    <p>"Hidden: " {move || fmt_bool(group.hidden)}</p>
+                    <p>"Created by: " {move || group.created_by.clone()}</p>
+                    <p>"Start date: " {move || fmt_datetime(&group.start_date)}</p>
+                    <p>"End date: " {move || fmt_datetime_opt(group.end_date.as_ref())}</p>
+                    <p>"Archive date: " {move || fmt_datetime_opt(group.archive_date.as_ref())}</p>
+                    <p>"Published: " {move || fmt_bool(group.published)}</p>
+                }
+            }}
         </div>
     }
 }
