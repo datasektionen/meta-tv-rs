@@ -1,7 +1,9 @@
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::{components::*, path};
-use pages::{create_slide_group::CreateSlideGroup, slide_group::EditSlideGroup};
+use pages::{
+    create_slide_group::CreateSlideGroup, screen_feed::ScreenFeed, slide_group::EditSlideGroup,
+};
 
 // Modules
 mod api;
@@ -34,6 +36,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/") view=Home />
                 <Route path=path!("/new") view=CreateSlideGroup />
                 <Route path=path!("/slides/:id") view=EditSlideGroup />
+                <Route path=path!("/feed/:id") view=ScreenFeed />
             </Routes>
         </Router>
     }

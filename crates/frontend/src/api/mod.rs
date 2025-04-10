@@ -122,3 +122,7 @@ pub async fn upload_content(data: &CreateContentDto, file: &File) -> Result<Crea
     )
     .await
 }
+
+pub fn get_screen_feed_url(screen_id: i32) -> String {
+    format!("/api/feed/{screen_id}")
+}

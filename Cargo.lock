@@ -878,6 +878,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
+ "strsim",
  "syn 2.0.100",
 ]
 
@@ -904,6 +905,18 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core",
+]
+
+[[package]]
+name = "default-struct-builder"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0df63c21a4383f94bd5388564829423f35c316aed85dc4f8427aded372c7c0d"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.100",
 ]
 
 [[package]]
@@ -1158,11 +1171,14 @@ name = "frontend"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "codee",
  "common",
  "console_error_panic_hook",
  "console_log",
  "gloo-net",
+ "gloo-timers",
  "leptos",
+ "leptos-use",
  "leptos_meta",
  "leptos_router",
  "log",
@@ -1925,6 +1941,27 @@ dependencies = [
  "typed-builder",
  "typed-builder-macro",
  "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "leptos-use"
+version = "0.16.0-beta"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46cf32bdd1bbf6ef2154427b54a70c2eba1b693d47c5a6087ed8554cb3463880"
+dependencies = [
+ "cfg-if",
+ "chrono",
+ "codee",
+ "default-struct-builder",
+ "js-sys",
+ "lazy_static",
+ "leptos",
+ "paste",
+ "send_wrapper",
+ "thiserror 2.0.12",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 

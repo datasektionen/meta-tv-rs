@@ -18,7 +18,6 @@ pub fn ContentItem(
             {move || {
                 if let Some(content) = content.get() {
                     match content.content_type {
-                        ContentType::Html => todo!(),
                         ContentType::Image => {
                             view! {
                                 <img
@@ -28,7 +27,28 @@ pub fn ContentItem(
                             }
                                 .into_any()
                         }
-                        ContentType::Video => todo!(),
+                        ContentType::Video => {
+                            view! {
+                                <video
+                                    controls
+                                    muted
+                                    preload="metadata"
+                                    class="object-contain h-full w-full"
+                                    src=format!("/uploads/{}", content.file_path)
+                                />
+                            }
+                                .into_any()
+                        }
+                        ContentType::Html => {
+                            view! {
+                                <iframe
+                                    sandbox=""
+                                    class="object-contain h-full w-full"
+                                    src=format!("/uploads/{}", content.file_path)
+                                />
+                            }
+                                .into_any()
+                        }
                     }
                 } else {
                     view! {
@@ -59,7 +79,7 @@ pub fn UploadContentDialog(
         let mime_type = file.type_();
         let content_type = if mime_type.starts_with("image/") {
             ContentType::Image
-        } else if mime_type.starts_with("video/*") {
+        } else if mime_type.starts_with("video/") {
             ContentType::Video
         } else {
             ContentType::Html
