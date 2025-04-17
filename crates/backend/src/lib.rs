@@ -1,3 +1,4 @@
+use auth::oidc::OidcInitializer;
 use files::FilesInitializer;
 use migration::MigratorTrait;
 use pool::Db;
@@ -10,11 +11,12 @@ use sea_orm_rocket::Database;
 #[macro_use]
 extern crate rocket;
 
+mod auth;
 mod error;
 mod files;
+mod guards;
 mod pool;
 mod routes;
-mod session;
 #[cfg(test)]
 mod test_utils;
 
@@ -27,6 +29,7 @@ async fn run_migrations(rocket: Rocket<Build>) -> fairing::Result {
 pub(crate) fn rocket() -> Rocket<Build> {
     rocket::build()
         .attach(FilesInitializer)
+        .attach(OidcInitializer)
         .attach(Db::init())
         .attach(AdHoc::try_on_ignite("Migrations", run_migrations))
         .mount(
@@ -47,6 +50,15 @@ pub(crate) fn rocket() -> Rocket<Build> {
                 routes::slide_group::update_slide_group,
             ],
         )
+        .mount(
+            "/auth",
+            routes![
+                routes::auth::login,
+                routes::auth::login_authenticated,
+                routes::auth::logout,
+                routes::auth::oidc_callback,
+            ],
+        )
 }
 
 #[rocket::main]
@@ -61,6 +73,6 @@ pub fn main() {
     println!("Rocket: deorbit.");
 
     if let Some(err) = result.err() {
-        println!("Error: {err}");
+        println!("Error: {err:?}");
     }
 }

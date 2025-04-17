@@ -9,6 +9,8 @@ use rocket::{
 use sea_orm::DbErr;
 use thiserror::Error;
 
+use crate::auth::oidc::OidcAuthenticationError;
+
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("uploaded file exceeds maximum allowed size (max is {0} bytes)")]
@@ -29,6 +31,18 @@ pub enum AppError {
     IoError(#[from] std::io::Error),
     #[error("internal error: {0}")]
     InternalError(&'static str),
+
+    #[error("you do not have permission to login")]
+    LoginUnauthorized,
+
+    #[error("internal OIDC  authentication error: {0}")] // not for login failures! just 500
+    OidcAuthenticationError(#[from] OidcAuthenticationError),
+    #[error("failed to serialize internal state for storage: {0}")]
+    StateSerializationError(#[source] serde_json::Error),
+    #[error("failed to deserialize internal state from secure storage: {0}")]
+    StateDeserializationError(#[source] serde_json::Error), // not from client-controlled
+    #[error("authentication flow expired and can no longer be completed")]
+    AuthenticationFlowExpired,
 }
 
 impl AppError {
@@ -43,6 +57,11 @@ impl AppError {
             AppError::DatabaseError(_) => Status::InternalServerError,
             AppError::IoError(_) => Status::InternalServerError,
             AppError::InternalError(_) => Status::InternalServerError,
+            AppError::LoginUnauthorized => Status::Forbidden,
+            AppError::OidcAuthenticationError(_) => Status::InternalServerError,
+            AppError::StateSerializationError(_) => Status::InternalServerError,
+            AppError::StateDeserializationError(_) => Status::InternalServerError,
+            AppError::AuthenticationFlowExpired => Status::Gone,
         }
     }
 }

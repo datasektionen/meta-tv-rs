@@ -1,6 +1,7 @@
 use common::dtos::CreatedDto;
 use rocket::{response::status::Created, serde::json::Json};
 
+pub mod auth;
 pub mod content;
 pub mod health;
 pub mod screen;

@@ -6,7 +6,7 @@ use sea_orm::{
 };
 use sea_orm_rocket::Connection;
 
-use crate::{error::AppError, pool::Db, session::User};
+use crate::{auth::Session, error::AppError, pool::Db};
 
 use super::{build_created_response, CreatedResponse};
 
@@ -104,7 +104,7 @@ async fn get_slide_group_dto(
 
 #[post("/slide-group", data = "<slide_group>")]
 pub async fn create_slide_group(
-    user: User,
+    session: Session,
     conn: Connection<'_, Db>,
     slide_group: Json<CreateSlideGroupDto>,
 ) -> Result<CreatedResponse, AppError> {
@@ -114,7 +114,7 @@ pub async fn create_slide_group(
         title: Set(slide_group.title.clone()),
         priority: Set(slide_group.priority),
         hidden: Set(slide_group.hidden),
-        created_by: Set(user.username),
+        created_by: Set(session.username),
         start_date: Set(slide_group.start_date.naive_utc()),
         end_date: Set(slide_group.end_date.as_ref().map(|d| d.naive_utc())),
         archive_date: Set(None),
@@ -129,7 +129,7 @@ pub async fn create_slide_group(
 
 #[put("/slide-group/<id>", data = "<slide_group>")]
 pub async fn update_slide_group(
-    _user: User, // ensure logged in
+    _session: Session, // ensure logged in
     conn: Connection<'_, Db>,
     id: i32,
     slide_group: Json<CreateSlideGroupDto>,
@@ -158,7 +158,7 @@ pub async fn update_slide_group(
 
 #[put("/slide-group/<id>/publish")]
 pub async fn publish_slide_group(
-    _user: User, // ensure logged in
+    _session: Session, // ensure logged in
     conn: Connection<'_, Db>,
     id: i32,
 ) -> Result<Status, AppError> {
@@ -182,7 +182,7 @@ pub async fn publish_slide_group(
 
 #[delete("/slide-group/<id>")]
 pub async fn archive_slide_group(
-    _user: User, // ensure logged in
+    _session: Session, // ensure logged in
     conn: Connection<'_, Db>,
     id: i32,
 ) -> Result<Status, AppError> {
@@ -226,18 +226,20 @@ async fn get_non_archived_slide_group(
 mod tests {
     use common::dtos::{CreateSlideGroupDto, SlideGroupDto};
     use rocket::http::Status;
-    use rocket::local::blocking::Client;
     use sea_orm::prelude::DateTimeUtc;
 
     use crate::assert_app_error;
     use crate::error::AppError;
-    use crate::test_utils::util_create_slide_group;
+    use crate::test_utils::{util_create_slide_group, TestClient};
 
     #[test]
     fn create_and_list_slide_group() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_slide_group(&client);
+
+        client.logout();
 
         let response = client.get("/api/slide-group").dispatch();
         assert_eq!(response.status(), Status::Ok);
@@ -248,7 +250,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(), // TODO
+                created_by: "johndoe".to_string(),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
@@ -260,9 +262,12 @@ mod tests {
 
     #[test]
     fn create_and_get_slide_group() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_slide_group(&client);
+
+        client.logout();
 
         let response = client.get("/api/slide-group/1").dispatch();
         assert_eq!(response.status(), Status::Ok);
@@ -273,7 +278,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(), // TODO
+                created_by: "johndoe".to_string(),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
@@ -285,7 +290,7 @@ mod tests {
 
     #[test]
     fn get_slide_group_not_found() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let client = TestClient::new();
 
         let response = client.get("/api/slide-group/1").dispatch();
         assert_app_error!(response, AppError::SlideGroupNotFound);
@@ -293,11 +298,12 @@ mod tests {
 
     #[test]
     fn update_and_list_slide_group() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_slide_group(&client);
 
-        // TODO change user for update to test created_by
+        client.login_as("not_johndoe", false);
 
         let response = client
             .put("/api/slide-group/1")
@@ -321,7 +327,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 1,
                 hidden: false,
-                created_by: "johndoe".to_string(), // TODO
+                created_by: "johndoe".to_string(),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
                 archive_date: None,
@@ -333,7 +339,8 @@ mod tests {
 
     #[test]
     fn update_slide_group_not_found() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         let response = client
             .put("/api/slide-group/1")
@@ -350,7 +357,8 @@ mod tests {
 
     #[test]
     fn update_slide_group_archived() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_slide_group(&client);
 
@@ -373,7 +381,8 @@ mod tests {
 
     #[test]
     fn publish_slide_group() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_slide_group(&client);
 
@@ -390,7 +399,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(), // TODO
+                created_by: "johndoe".to_string(),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
@@ -402,7 +411,8 @@ mod tests {
 
     #[test]
     fn publish_slide_group_not_found() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         let response = client.put("/api/slide-group/1/publish").dispatch();
         assert_app_error!(response, AppError::SlideGroupNotFound);
@@ -410,7 +420,8 @@ mod tests {
 
     #[test]
     fn publish_slide_group_archived() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_slide_group(&client);
 
@@ -424,7 +435,8 @@ mod tests {
 
     #[test]
     fn archive_slide_group() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_slide_group(&client);
 
@@ -450,7 +462,8 @@ mod tests {
 
     #[test]
     fn archive_slide_group_not_found() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         let response = client.delete("/api/slide-group/1").dispatch();
         assert_app_error!(response, AppError::SlideGroupNotFound);
@@ -458,7 +471,8 @@ mod tests {
 
     #[test]
     fn archive_slide_group_already_archived() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_slide_group(&client);
 

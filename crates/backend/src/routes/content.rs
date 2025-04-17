@@ -6,7 +6,7 @@ use sea_orm::{
 };
 use sea_orm_rocket::Connection;
 
-use crate::{error::AppError, files::Files, pool::Db, session::User};
+use crate::{auth::Session, error::AppError, files::Files, pool::Db};
 
 use super::{build_created_response, CreatedResponse};
 
@@ -18,7 +18,7 @@ pub(crate) struct Upload<'r> {
 
 #[post("/content", data = "<upload>")]
 pub async fn create_content(
-    _user: User, // for access control only
+    _session: Session, // for access control only
     conn: Connection<'_, Db>,
     files: &State<Files>,
     mut upload: Form<Upload<'_>>,
@@ -82,12 +82,13 @@ mod tests {
         AppErrorDto, ContentDto, ContentType, CreateContentDto, SlideDto, SlideGroupDto,
     };
     use rocket::http::{self, Status};
-    use rocket::local::blocking::Client;
     use rocket::serde::json;
     use sea_orm::prelude::DateTimeUtc;
 
     use crate::assert_created;
-    use crate::test_utils::{util_create_screens, util_create_slide, util_create_slide_group};
+    use crate::test_utils::{
+        util_create_screens, util_create_slide, util_create_slide_group, TestClient,
+    };
 
     fn util_prepare_upload(data: &CreateContentDto, file: &str) -> (http::ContentType, String) {
         // There isn't a better way to test this :/
@@ -115,7 +116,8 @@ mod tests {
 
     #[test]
     fn create_content_and_list_slide_groups() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_screens(&client);
         util_create_slide_group(&client);
@@ -148,7 +150,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(), // TODO
+                created_by: "johndoe".to_string(),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
@@ -202,7 +204,8 @@ mod tests {
 
     #[test]
     fn overwrite_content_and_list_slide_groups() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_screens(&client);
         util_create_slide_group(&client);
@@ -230,7 +233,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(), // TODO
+                created_by: "johndoe".to_string(),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
@@ -276,7 +279,8 @@ mod tests {
 
     #[test]
     fn missing_screen() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_slide_group(&client);
         util_create_slide(&client, 1, 1);
@@ -299,7 +303,8 @@ mod tests {
 
     #[test]
     fn missing_slide() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_screens(&client);
 

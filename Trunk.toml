@@ -32,3 +32,6 @@ open = true
 backend = "http://localhost:8000/api"
 [[proxy]]
 backend = "http://localhost:8000/uploads"
+[[proxy]]
+backend = "http://localhost:8000/auth"
+no_redirect = true

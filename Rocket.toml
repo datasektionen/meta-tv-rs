@@ -9,5 +9,12 @@ limits.data-form = "51MiB"
 
 [default.databases.sea_orm]
 # Set through env variable if preferred:
-# ROCKET_DATABASES={sea_orm={url="postgresql://localhost/metatv"}}
+# ROCKET_DATABASES='{sea_orm={url="postgresql://localhost/metatv"}}'
 url = "postgres://root:root@localhost/metatv"
+
+[default.oidc]
+# Set through env variable if preferred:
+# ROCKET_OIDC='{issuer_url="postgresql://localhost/metatv",client_id="",client_secret=""}'
+issuer_url = "https://example.com"
+client_id = ""
+client_secret = ""

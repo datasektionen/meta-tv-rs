@@ -3,7 +3,7 @@ use rocket::serde::json::Json;
 use sea_orm::{ActiveModelTrait, EntityTrait, QueryOrder, Set};
 use sea_orm_rocket::Connection;
 
-use crate::{error::AppError, pool::Db, session::User};
+use crate::{auth::Session, error::AppError, pool::Db};
 
 use super::{build_created_response, CreatedResponse};
 
@@ -24,7 +24,7 @@ pub async fn list_screens(conn: Connection<'_, Db>) -> Result<Json<Vec<ScreenDto
 
 #[post("/screen", data = "<screen>")]
 pub async fn create_screen(
-    _user: User,
+    _session: Session,
     conn: Connection<'_, Db>,
     screen: Json<CreateScreenDto>,
 ) -> Result<CreatedResponse, AppError> {
@@ -46,13 +46,14 @@ pub async fn create_screen(
 mod tests {
     use common::dtos::{CreateScreenDto, ScreenDto};
     use rocket::http::Status;
-    use rocket::local::blocking::Client;
 
     use crate::assert_created;
+    use crate::test_utils::TestClient;
 
     #[test]
     fn create_and_list_screens() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
         macro_rules! create_screen {
             ($name: expr, $position: expr, $id: expr) => {
                 let response = client

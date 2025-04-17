@@ -3,13 +3,13 @@ use rocket::{http::Status, serde::json::Json};
 use sea_orm::{ActiveModelTrait, EntityTrait, Set, TransactionTrait};
 use sea_orm_rocket::Connection;
 
-use crate::{error::AppError, pool::Db, session::User};
+use crate::{auth::Session, error::AppError, pool::Db};
 
 use super::{build_created_response, CreatedResponse};
 
 #[post("/slide", data = "<slide>")]
 pub async fn create_slide(
-    _user: User, // for access control only
+    _session: Session, // for access control only
     conn: Connection<'_, Db>,
     slide: Json<CreateSlideDto>,
 ) -> Result<CreatedResponse, AppError> {
@@ -29,7 +29,7 @@ pub async fn create_slide(
 
 #[post("/slide/bulk-move", data = "<positions>")]
 pub async fn bulk_move_slides(
-    _user: User, // for access control only
+    _session: Session, // for access control only
     conn: Connection<'_, Db>,
     positions: Json<MoveSlidesDto>,
 ) -> Result<Status, AppError> {
@@ -66,14 +66,14 @@ pub async fn bulk_move_slides(
 mod tests {
     use common::dtos::{AppErrorDto, MoveSlidesDto, SlideDto, SlideGroupDto};
     use rocket::http::Status;
-    use rocket::local::blocking::Client;
     use sea_orm::prelude::DateTimeUtc;
 
-    use crate::test_utils::{util_create_slide, util_create_slide_group};
+    use crate::test_utils::{util_create_slide, util_create_slide_group, TestClient};
 
     #[test]
     fn create_slides_and_list_slide_groups() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_slide_group(&client);
 
@@ -90,7 +90,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(), // TODO
+                created_by: "johndoe".to_string(),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
@@ -121,7 +121,8 @@ mod tests {
 
     #[test]
     fn move_slides_and_list_slide_groups() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         util_create_slide_group(&client);
 
@@ -147,7 +148,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(), // TODO
+                created_by: "johndoe".to_string(),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
@@ -178,7 +179,8 @@ mod tests {
 
     #[test]
     fn move_non_exiting_slide() {
-        let client = Client::tracked(crate::rocket()).unwrap();
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
 
         let response = client
             .post("/api/slide/bulk-move")

@@ -1,6 +1,14 @@
+use core::fmt;
+
+use chrono::{Days, Utc};
 use common::dtos::{CreateScreenDto, CreateSlideDto, CreateSlideGroupDto};
-use rocket::local::blocking::Client;
+use rocket::{
+    http::{uri::Origin, Cookie},
+    local::blocking::{Client, LocalRequest},
+};
 use sea_orm::prelude::DateTimeUtc;
+
+use crate::auth::{Session, AUTH_COOKIE};
 
 #[macro_export]
 macro_rules! assert_created {
@@ -28,7 +36,51 @@ macro_rules! assert_app_error {
     };
 }
 
-pub fn util_create_slide_group(client: &Client) {
+pub struct TestClient {
+    client: Client,
+    cookie: Option<Cookie<'static>>,
+}
+
+macro_rules! req_method {
+    ($method: ident) => {
+        pub fn $method<'c, 'u: 'c, U>(&'c self, uri: U) -> LocalRequest<'c>
+        where
+            U: TryInto<Origin<'u>> + fmt::Display,
+        {
+            self.add_cookie(self.client.$method(uri))
+        }
+    };
+}
+
+impl TestClient {
+    pub fn new() -> Self {
+        Self {
+            client: Client::tracked(crate::rocket()).expect("failed to init rocket client"),
+            cookie: None,
+        }
+    }
+    pub fn login_as(&mut self, username: &str, is_admin: bool) {
+        self.cookie = Some(get_user_cookie(username, is_admin));
+    }
+    pub fn logout(&mut self) {
+        self.cookie = None;
+    }
+
+    fn add_cookie<'c>(&self, request: LocalRequest<'c>) -> LocalRequest<'c> {
+        if let Some(cookie) = &self.cookie {
+            request.private_cookie(cookie.clone())
+        } else {
+            request
+        }
+    }
+
+    req_method!(get);
+    req_method!(post);
+    req_method!(put);
+    req_method!(delete);
+}
+
+pub fn util_create_slide_group(client: &TestClient) {
     let response = client
         .post("/api/slide-group")
         .json(&CreateSlideGroupDto {
@@ -42,7 +94,7 @@ pub fn util_create_slide_group(client: &Client) {
     assert_created!(response, "/api/slide-group", 1);
 }
 
-pub fn util_create_slide(client: &Client, id: i32, position: i32) {
+pub fn util_create_slide(client: &TestClient, id: i32, position: i32) {
     let response = client
         .post("/api/slide")
         .json(&CreateSlideDto {
@@ -53,7 +105,7 @@ pub fn util_create_slide(client: &Client, id: i32, position: i32) {
     assert_created!(response, "/api/slide", id);
 }
 
-pub fn util_create_screens(client: &Client) {
+pub fn util_create_screens(client: &TestClient) {
     macro_rules! create_screen {
         ($name: expr, $position: expr, $id: expr) => {
             let response = client
@@ -70,4 +122,17 @@ pub fn util_create_screens(client: &Client) {
     create_screen!("Left", 0, 1);
     create_screen!("Center", 1, 2);
     create_screen!("Right", 2, 3);
+}
+
+fn get_user_cookie(username: &str, is_admin: bool) -> Cookie<'static> {
+    let session = Session {
+        username: username.to_string(),
+        is_admin,
+        expiration: Utc::now()
+            .checked_add_days(Days::new(30))
+            .expect("chrono add days failed"),
+    };
+    let value = serde_json::to_string(&session).expect("failed to serialize session");
+
+    (AUTH_COOKIE, value).into()
 }
