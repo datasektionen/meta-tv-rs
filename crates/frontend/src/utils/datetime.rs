@@ -21,9 +21,9 @@ pub fn fmt_datetime(datetime: &DateTime<Utc>) -> String {
     datetime.with_timezone(&Local).to_rfc2822()
 }
 
-pub fn fmt_datetime_opt(datetime: Option<&DateTime<Utc>>) -> String {
+pub fn fmt_datetime_opt(datetime: Option<&DateTime<Utc>>, none: &'static str) -> String {
     match datetime {
         Some(dt) => fmt_datetime(dt),
-        None => "None".to_string(),
+        None => none.to_string(),
     }
 }

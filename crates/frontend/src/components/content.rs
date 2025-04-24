@@ -1,67 +1,77 @@
-use common::dtos::{ContentDto, ContentType, CreateContentDto};
+use common::dtos::{ContentDto, ContentType, CreateContentDto, ScreenDto};
+use icondata as i;
 use leptos::prelude::*;
+use leptos_icons::Icon;
 use web_sys::File;
 
 use crate::{api, components::dialog::Dialog, context::SlideGroupOptionsContext};
 
 #[component]
 pub fn ContentItem(
-    #[prop()] screen_id: i32,
+    #[prop()] screen: ScreenDto,
     #[prop()] slide_id: i32,
     content: Signal<Option<ContentDto>>,
 ) -> impl IntoView {
     let is_upload_dialog_open = RwSignal::new(false);
 
     view! {
-        <div class="aspect-16/9 h-40">
-            <UploadContentDialog screen_id=screen_id slide_id=slide_id open=is_upload_dialog_open />
-            {move || {
-                if let Some(content) = content.get() {
-                    match content.content_type {
-                        ContentType::Image => {
-                            view! {
-                                <img
-                                    class="object-contain h-full w-full"
-                                    src=format!("/uploads/{}", content.file_path)
-                                />
+        <div>
+            <p class="uppercase text-current/80 font-bold text-sm">{screen.name}</p>
+            <div class="aspect-16/9 h-40 border">
+                <UploadContentDialog
+                    screen_id=screen.id
+                    slide_id=slide_id
+                    open=is_upload_dialog_open
+                />
+                {move || {
+                    if let Some(content) = content.get() {
+                        match content.content_type {
+                            ContentType::Image => {
+                                view! {
+                                    <img
+                                        class="object-contain h-full w-full"
+                                        src=format!("/uploads/{}", content.file_path)
+                                    />
+                                }
+                                    .into_any()
                             }
-                                .into_any()
-                        }
-                        ContentType::Video => {
-                            view! {
-                                <video
-                                    controls
-                                    muted
-                                    preload="metadata"
-                                    class="object-contain h-full w-full"
-                                    src=format!("/uploads/{}", content.file_path)
-                                />
+                            ContentType::Video => {
+                                view! {
+                                    <video
+                                        controls
+                                        muted
+                                        preload="metadata"
+                                        class="object-contain h-full w-full"
+                                        src=format!("/uploads/{}", content.file_path)
+                                    />
+                                }
+                                    .into_any()
                             }
-                                .into_any()
-                        }
-                        ContentType::Html => {
-                            view! {
-                                <iframe
-                                    sandbox=""
-                                    class="object-contain h-full w-full"
-                                    src=format!("/uploads/{}", content.file_path)
-                                />
+                            ContentType::Html => {
+                                view! {
+                                    <iframe
+                                        sandbox=""
+                                        class="object-contain h-full w-full"
+                                        src=format!("/uploads/{}", content.file_path)
+                                    />
+                                }
+                                    .into_any()
                             }
-                                .into_any()
                         }
+                    } else {
+                        view! {
+                            <button
+                                class="w-full h-full bg-stone-100 flex gap-2 flex-col text-xl justify-center items-center"
+                                on:click=move |_| is_upload_dialog_open.set(true)
+                            >
+                                <Icon icon=i::MdiPlus width="2em" height="2em" />
+                                "Upload"
+                            </button>
+                        }
+                            .into_any()
                     }
-                } else {
-                    view! {
-                        <button
-                            class="w-full h-full border"
-                            on:click=move |_| is_upload_dialog_open.set(true)
-                        >
-                            "+"
-                        </button>
-                    }
-                        .into_any()
-                }
-            }}
+                }}
+            </div>
         </div>
     }
 }
@@ -106,26 +116,33 @@ pub fn UploadContentDialog(
 
     view! {
         <Dialog open=open>
-            <form on:submit=move |ev| {
-                ev.prevent_default();
-                if let Some(file) = input_ref
-                    .get()
-                    .and_then(|input| { input.files() })
-                    .and_then(|filelist| filelist.item(0))
-                {
-                    upload_action.dispatch_local(file);
-                }
-            }>
-                <fieldset disabled=is_submitting>
-                    <input
-                        node_ref=input_ref
-                        type="file"
-                        accept="image/*,video/*,text/html"
-                        required="true"
-                    />
-                    <button type="submit">"Upload"</button>
-                </fieldset>
-            </form>
+            <div class="card">
+                <form on:submit=move |ev| {
+                    ev.prevent_default();
+                    if let Some(file) = input_ref
+                        .get()
+                        .and_then(|input| { input.files() })
+                        .and_then(|filelist| filelist.item(0))
+                    {
+                        upload_action.dispatch_local(file);
+                    }
+                }>
+                    <fieldset disabled=is_submitting>
+                        <input
+                            node_ref=input_ref
+                            type="file"
+                            accept="image/*,video/*,text/html"
+                            required="true"
+                        />
+                        <button class="btn" type="submit">
+                            "Upload"
+                        </button>
+                        <button class="btn" type="button" on:click=move |_| open.set(false)>
+                            "Cancel"
+                        </button>
+                    </fieldset>
+                </form>
+            </div>
         </Dialog>
     }
 }

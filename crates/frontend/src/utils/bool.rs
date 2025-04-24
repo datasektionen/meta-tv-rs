@@ -1,7 +1,8 @@
-pub fn fmt_bool(b: bool) -> &'static str {
+#[inline]
+pub fn fmt_if<T>(b: bool, yes: T, no: T) -> T {
     if b {
-        "Yes"
+        yes
     } else {
-        "No"
+        no
     }
 }

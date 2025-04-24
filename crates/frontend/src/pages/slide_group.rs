@@ -37,7 +37,7 @@ pub fn EditSlideGroup() -> impl IntoView {
                 view! { <ErrorList errors=errors /> }
             }>
 
-                <div class="container">
+                <div class="container m-auto px-10">
                     {move || Suspend::new(async move {
                         slide_group
                             .await

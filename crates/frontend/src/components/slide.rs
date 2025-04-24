@@ -64,6 +64,11 @@ fn SlideListInner(
                     })
             }
         />
+        <Show when=move || slide_group.get().slides.is_empty()>
+            <div class="h-60 text-center content-center bg-stone-100 rounded-lg my-4">
+                "There are currently no slides"
+            </div>
+        </Show>
         <AddSlideButton group_id=group_id max_position=Signal::derive(max_position) />
     }
 }
@@ -92,6 +97,7 @@ fn AddSlideButton(#[prop()] group_id: i32, max_position: Signal<i32>) -> impl In
     view! {
         {response}
         <button
+            class="btn"
             disabled=is_submitting
             on:click=move |_| {
                 create_action.dispatch(max_position.get() + 1);
@@ -105,7 +111,7 @@ fn AddSlideButton(#[prop()] group_id: i32, max_position: Signal<i32>) -> impl In
 #[component]
 fn SlideRow(#[prop()] screens: Vec<ScreenDto>, slide: Signal<SlideDto>) -> impl IntoView {
     view! {
-        <div>
+        <div class="flex gap-4 my-6">
             <For
                 each=move || screens.clone()
                 key=|screen| screen.id
@@ -118,7 +124,7 @@ fn SlideRow(#[prop()] screens: Vec<ScreenDto>, slide: Signal<SlideDto>) -> impl 
                     });
                     view! {
                         <ContentItem
-                            screen_id=screen.id
+                            screen=screen
                             slide_id=slide.get_untracked().id
                             content=Signal::from(content)
                         />

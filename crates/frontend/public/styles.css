@@ -1,1 +1,37 @@
 @import "tailwindcss";
+
+@layer base {
+  button {
+    cursor: pointer;
+  }
+
+  dialog {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    inset: 0;
+    position: fixed;
+    width: inherit;
+    height: inherit;
+    min-height: 100%;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: blur(.375rem);
+
+    &:not([open]) {
+      display: none;
+    }
+  }
+}
+
+@layer components {
+  .btn {
+    @apply text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800;
+  }
+
+  .card {
+    @apply bg-white shadow-sm rounded-lg px-5 py-4;
+  }
+}

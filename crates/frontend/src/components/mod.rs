@@ -1,3 +1,4 @@
+pub mod alert;
 pub mod content;
 pub mod dialog;
 pub mod error;
