@@ -84,6 +84,11 @@ pub fn UploadContentDialog(
 ) -> impl IntoView {
     let input_ref = NodeRef::new();
 
+    let Some(page_context) = use_context::<SlideGroupOptionsContext>() else {
+        // if context is not available, then hide dialog
+        return ().into_any();
+    };
+
     let upload_action = Action::new_local(move |file: &File| {
         let file = file.clone();
         let mime_type = file.type_();
@@ -101,9 +106,6 @@ pub fn UploadContentDialog(
         };
         async move { api::upload_content(&data, &file).await }
     });
-
-    let page_context =
-        use_context::<SlideGroupOptionsContext>().expect("to have found the context");
 
     let is_submitting = upload_action.pending();
     let response = move || upload_action.value().get().map(|r| r.map(|_| ()));
@@ -145,4 +147,5 @@ pub fn UploadContentDialog(
             </div>
         </Dialog>
     }
+    .into_any()
 }

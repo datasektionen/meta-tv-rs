@@ -1,4 +1,7 @@
-use crate::{api, components::error::ErrorList};
+use crate::{
+    api,
+    components::{error::ErrorList, slide_group::SlideGroupOverview},
+};
 use leptos::prelude::*;
 use leptos_router::components::A;
 
@@ -20,7 +23,12 @@ pub fn Home() -> impl IntoView {
                             .map(|groups| {
                                 groups
                                     .iter()
-                                    .map(|group| view! { <p>{group.title.clone()}</p> })
+                                    .map(|group| {
+                                        view! {
+                                            <SlideGroupOverview slide_group=RwSignal::new(group.clone())
+                                                .into() />
+                                        }
+                                    })
                                     .collect_view()
                             })
                     })} <A href="/new">Create new</A>

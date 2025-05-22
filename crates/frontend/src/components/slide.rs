@@ -83,8 +83,10 @@ fn AddSlideButton(#[prop()] group_id: i32, max_position: Signal<i32>) -> impl In
         async move { api::create_slide(&data).await }
     });
 
-    let page_context =
-        use_context::<SlideGroupOptionsContext>().expect("to have found the context");
+    let Some(page_context) = use_context::<SlideGroupOptionsContext>() else {
+        // if context is not available, then hide button
+        return ().into_any();
+    };
 
     let is_submitting = create_action.pending();
     let response = move || create_action.value().get().map(|r| r.map(|_| ()));
@@ -106,6 +108,7 @@ fn AddSlideButton(#[prop()] group_id: i32, max_position: Signal<i32>) -> impl In
             "Add Slide"
         </button>
     }
+    .into_any()
 }
 
 #[component]
