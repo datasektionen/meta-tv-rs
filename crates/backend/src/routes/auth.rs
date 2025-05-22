@@ -64,6 +64,11 @@ pub async fn user_info(session: Session) -> Json<SessionDto> {
     })
 }
 
+#[catch(401)]
+pub async fn not_logged_in() -> AppError {
+    AppError::Unauthenticated
+}
+
 #[cfg(test)]
 mod tests {
     use common::dtos::SessionDto;

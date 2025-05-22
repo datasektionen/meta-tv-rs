@@ -50,6 +50,7 @@ pub(crate) fn rocket() -> Rocket<Build> {
                 routes::slide_group::update_slide_group,
             ],
         )
+        .register("/api", catchers![routes::auth::not_logged_in])
         .mount(
             "/auth",
             routes![
@@ -60,6 +61,7 @@ pub(crate) fn rocket() -> Rocket<Build> {
                 routes::auth::user_info,
             ],
         )
+        .register("/auth", catchers![routes::auth::not_logged_in])
 }
 
 #[rocket::main]
