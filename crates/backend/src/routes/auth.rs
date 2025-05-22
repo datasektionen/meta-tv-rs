@@ -1,6 +1,8 @@
+use common::dtos::SessionDto;
 use rocket::{
     http::{uri::Host, CookieJar},
     response::Redirect,
+    serde::json::Json,
     State,
 };
 
@@ -49,4 +51,52 @@ pub async fn logout(jar: &CookieJar<'_>) -> Redirect {
     auth::logout(jar);
 
     Redirect::to("/")
+}
+
+#[rocket::get("/user")]
+pub async fn user_info(session: Session) -> Json<SessionDto> {
+    Json(SessionDto {
+        username: session.username,
+        is_admin: session.is_admin,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use common::dtos::SessionDto;
+    use rocket::http::Status;
+
+    use crate::test_utils::TestClient;
+
+    #[test]
+    fn get_user_info() {
+        let mut client = TestClient::new();
+        client.login_as("johndoe", false);
+
+        let response = client.get("/auth/user").dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert_eq!(
+            response.into_json(),
+            Some(SessionDto {
+                username: "johndoe".to_string(),
+                is_admin: false
+            })
+        );
+    }
+
+    #[test]
+    fn get_user_info_admin() {
+        let mut client = TestClient::new();
+        client.login_as("janedoe", true);
+
+        let response = client.get("/auth/user").dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert_eq!(
+            response.into_json(),
+            Some(SessionDto {
+                username: "janedoe".to_string(),
+                is_admin: true
+            })
+        );
+    }
 }

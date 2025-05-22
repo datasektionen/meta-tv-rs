@@ -57,6 +57,7 @@ pub(crate) fn rocket() -> Rocket<Build> {
                 routes::auth::login_authenticated,
                 routes::auth::logout,
                 routes::auth::oidc_callback,
+                routes::auth::user_info,
             ],
         )
 }

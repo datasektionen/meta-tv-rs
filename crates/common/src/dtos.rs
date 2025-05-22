@@ -136,3 +136,9 @@ pub struct FeedEntryDto {
     pub file_path: String,
     pub duration: i32, // milliseconds
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct SessionDto {
+    pub username: String,
+    pub is_admin: bool,
+}
