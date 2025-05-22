@@ -14,6 +14,8 @@ pub fn ContentItem(
 ) -> impl IntoView {
     let is_upload_dialog_open = RwSignal::new(false);
 
+    let is_readonly = use_context::<SlideGroupOptionsContext>().is_none();
+
     view! {
         <div>
             <p class="uppercase text-current/80 font-bold text-sm">{screen.name}</p>
@@ -58,6 +60,14 @@ pub fn ContentItem(
                                     .into_any()
                             }
                         }
+                    } else if is_readonly {
+                        view! {
+                            <div class="w-full h-full bg-stone-100 flex gap-2 flex-col text-xl justify-center items-center">
+                                <Icon icon=i::MdiFileDocumentAlert width="2em" height="2em" />
+                                "Empty"
+                            </div>
+                        }
+                            .into_any()
                     } else {
                         view! {
                             <button

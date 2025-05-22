@@ -4,12 +4,14 @@ use leptos::prelude::*;
 use crate::{
     api,
     components::{content::ContentItem, error::ErrorList},
-    context::SlideGroupOptionsContext,
+    context::{ScreenContext, SlideGroupOptionsContext},
 };
 
 #[component]
 pub fn SlideList(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
-    let screens = LocalResource::new(move || async move { api::list_screens().await });
+    let screens = use_context::<ScreenContext>()
+        .expect("expected screen context")
+        .screens;
 
     view! {
         <Transition fallback=|| view! { <div>Loading...</div> }>

@@ -2,7 +2,6 @@ use common::dtos::SlideGroupDto;
 use icondata as i;
 use leptos::prelude::*;
 use leptos_icons::Icon;
-use leptos_router::components::A;
 
 use crate::{
     components::{alert::Alert, slide::SlideList},
@@ -22,9 +21,20 @@ pub fn SlideGroupOverview(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
             {move || {
                 let group = slide_group.get();
                 view! {
-                    <h1 class="text-6xl mb-6">
-                        <A href=format!("/slides/{}", group.id)>{group.title}</A>
-                    </h1>
+                    <div class="flex flex-wrap-reverse items-center justify-between gap-2 mb-6">
+                        <h1 class="text-6xl">
+                            <a href=format!("/slides/{}", group.id)>{group.title}</a>
+                        </h1>
+                        <div class="text-right grow">
+                            <a
+                                href=format!("/slides/{}", group.id)
+                                class="btn inline-flex gap-2 items-center"
+                            >
+                                "View Details"
+                                <Icon icon=i::MdiArrowRight width="1.5em" height="1.5em" />
+                            </a>
+                        </div>
+                    </div>
                     <Show when=move || group.archive_date.is_some()>
                         <Alert icon=i::MdiDeleteAlert class="bg-red-300">
                             "These slides have been deleted on "
@@ -68,8 +78,7 @@ pub fn SlideGroupOverview(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
                         </PropertyDisplay>
                     </div>
                 }
-            }}
-            <SlideList slide_group=slide_group />
+            }} <SlideList slide_group=slide_group />
         </div>
     }
 }

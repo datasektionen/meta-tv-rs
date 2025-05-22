@@ -1,7 +1,7 @@
 use crate::{
     api,
     components::{error::ErrorList, slide_group_options::SlideGroupOptions},
-    context::SlideGroupOptionsContext,
+    context::{ScreenContext, SlideGroupOptionsContext},
 };
 use leptos::prelude::*;
 use leptos_router::{hooks::use_params, params::Params};
@@ -27,9 +27,10 @@ pub fn EditSlideGroup() -> impl IntoView {
         async move { api::get_slide_group(id).await }
     });
 
-    let context = SlideGroupOptionsContext { slide_group };
+    provide_context(SlideGroupOptionsContext { slide_group });
 
-    provide_context(context);
+    let screens = LocalResource::new(move || async move { api::list_screens().await });
+    provide_context(ScreenContext { screens });
 
     view! {
         <Transition fallback=|| view! { <div>Loading...</div> }>
