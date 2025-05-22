@@ -27,6 +27,7 @@ pub struct OidcConfig {
     pub issuer_url: String,
     pub client_id: String,
     pub client_secret: String,
+    pub redirect_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -104,6 +105,7 @@ type PlsClient = Client<
 pub struct OidcClient {
     client: PlsClient,
     http_client: openidconnect::reqwest::Client,
+    pub redirect_url: Option<String>,
 }
 
 impl OidcClient {
@@ -127,6 +129,7 @@ impl OidcClient {
         Ok(Self {
             client,
             http_client,
+            redirect_url: config.redirect_url,
         })
     }
 

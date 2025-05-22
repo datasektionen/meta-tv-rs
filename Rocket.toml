@@ -14,7 +14,8 @@ url = "postgres://root:root@localhost/metatv"
 
 [default.oidc]
 # Set through env variable if preferred:
-# ROCKET_OIDC='{issuer_url="postgresql://localhost/metatv",client_id="",client_secret=""}'
+# ROCKET_OIDC='{issuer_url="postgresql://localhost/metatv",client_id="",client_secret="",redirect_url="http://localhost:5000/auth/oidc-callback"}'
 issuer_url = "https://example.com"
 client_id = ""
 client_secret = ""
+redirect_url = "http://localhost:5000/auth/oidc-callback"

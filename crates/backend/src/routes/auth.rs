@@ -20,7 +20,10 @@ pub async fn login(
     jar: &CookieJar<'_>,
 ) -> Result<Redirect, AppError> {
     let url = auth::begin_authentication(
-        format!("{scheme}://{host}/auth/oidc-callback"),
+        oidc_client
+            .redirect_url
+            .clone()
+            .unwrap_or(format!("{scheme}://{host}/auth/oidc-callback")),
         oidc_client,
         jar,
     )

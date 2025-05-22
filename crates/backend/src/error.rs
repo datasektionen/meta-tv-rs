@@ -35,7 +35,7 @@ pub enum AppError {
     #[error("you do not have permission to login")]
     LoginUnauthorized,
 
-    #[error("internal OIDC  authentication error: {0}")] // not for login failures! just 500
+    #[error("internal OIDC authentication error: {0}")] // not for login failures! just 500
     OidcAuthenticationError(#[from] OidcAuthenticationError),
     #[error("failed to serialize internal state for storage: {0}")]
     StateSerializationError(#[source] serde_json::Error),
