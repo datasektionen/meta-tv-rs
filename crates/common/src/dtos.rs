@@ -45,7 +45,7 @@ pub struct CreateScreenDto {
     pub position: i32,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
 pub struct SlideGroupDto {
     pub id: i32,
     pub title: String,
@@ -79,7 +79,7 @@ pub struct MoveSlidesDto {
     pub new_positions: HashMap<i32, i32>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
 pub struct SlideDto {
     pub id: i32,
     pub position: i32,
@@ -94,7 +94,7 @@ pub struct CreateContentDto {
     pub content_type: ContentType,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
 pub struct ContentDto {
     pub id: i32,
     pub screen: i32,
@@ -103,9 +103,10 @@ pub struct ContentDto {
     pub archive_date: Option<DateTime<Utc>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum ContentType {
     Html,
+    #[default]
     Image,
     Video,
 }

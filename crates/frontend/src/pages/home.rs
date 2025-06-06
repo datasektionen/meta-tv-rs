@@ -1,6 +1,6 @@
 use crate::{
     api,
-    components::{error::ErrorList, slide_group::SlideGroupOverview},
+    components::{error::ErrorList, slide_group::SlideGroupOverview, utils::ForVecMemo},
     context::ScreenContext,
 };
 use leptos::prelude::*;
@@ -9,40 +9,48 @@ use leptos::prelude::*;
 #[component]
 pub fn Home() -> impl IntoView {
     let slide_groups = LocalResource::new(async move || api::list_slide_groups().await);
+    let slide_groups_memo = Memo::new(move |_| {
+        slide_groups
+            .get()
+            .map(|res| res.unwrap_or_default())
+            .unwrap_or_default()
+    });
 
     let screens = LocalResource::new(move || async move { api::list_screens().await });
-    provide_context(ScreenContext { screens });
+    let screens_memo = Memo::new(move |_| {
+        screens
+            .get()
+            .map(|res| res.unwrap_or_default())
+            .unwrap_or_default()
+    });
+    provide_context(ScreenContext {
+        screens: screens_memo,
+    });
 
     view! {
         <Transition fallback=|| view! { <div>Loading...</div> }>
             <ErrorBoundary fallback=|errors| {
                 view! { <ErrorList errors=errors /> }
             }>
-
+                {move || Suspend::new(async move { slide_groups.await.map(|_| ()) })}
+                {move || Suspend::new(async move { screens.await.map(|_| ()) })}
                 <div class="container m-auto my-4">
                     <div class="text-right">
                         <a class="btn" href="/new">
                             "Create New"
                         </a>
                     </div>
-                    {move || Suspend::new(async move {
-                        slide_groups
-                            .await
-                            .map(|groups| {
-                                groups
-                                    .iter()
-                                    .map(|group| {
-                                        view! {
-                                            <div class="card my-8">
-                                                <SlideGroupOverview slide_group=RwSignal::new(group.clone())
-                                                    .into() />
-                                            </div>
-                                        }
-                                    })
-                                    .collect_view()
-                            })
-                    })}
-
+                    <ForVecMemo
+                        vec=slide_groups_memo
+                        key=|slide_group| slide_group.id
+                        children=move |group| {
+                            view! {
+                                <div class="card my-8">
+                                    <SlideGroupOverview slide_group=group />
+                                </div>
+                            }
+                        }
+                    />
                 </div>
             </ErrorBoundary>
         </Transition>

@@ -10,7 +10,7 @@ use crate::{api, components::dialog::Dialog, context::SlideGroupOptionsContext};
 pub fn ContentItem(
     #[prop()] screen: ScreenDto,
     #[prop()] slide_id: i32,
-    content: Signal<Option<ContentDto>>,
+    #[prop(into)] content: Signal<Option<ContentDto>>,
 ) -> impl IntoView {
     let is_upload_dialog_open = RwSignal::new(false);
 
@@ -121,7 +121,7 @@ pub fn UploadContentDialog(
     let response = move || upload_action.value().get().map(|r| r.map(|_| ()));
     Effect::new(move || {
         if response().map(|res| res.is_ok()).unwrap_or_default() {
-            page_context.slide_group.refetch();
+            page_context.refresh_group.dispatch(());
             open.set(false);
         }
     });

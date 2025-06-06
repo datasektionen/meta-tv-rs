@@ -15,7 +15,7 @@ use crate::{
 /// each slide group.
 /// Should not include a lot of data.
 #[component]
-pub fn SlideGroupOverview(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
+pub fn SlideGroupOverview(#[prop(into)] slide_group: Signal<SlideGroupDto>) -> impl IntoView {
     view! {
         <div>
             {move || {

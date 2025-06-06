@@ -26,32 +26,45 @@ pub fn EditSlideGroup() -> impl IntoView {
             .unwrap_or_default();
         async move { api::get_slide_group(id).await }
     });
+    let slide_group_memo = Memo::new(move |_| {
+        slide_group
+            .get()
+            .map(|res| res.unwrap_or_default())
+            .unwrap_or_default()
+    });
+    let refresh_action = Action::new(move |_: &()| {
+        slide_group.refetch();
+        async {}
+    });
 
-    provide_context(SlideGroupOptionsContext { slide_group });
+    provide_context(SlideGroupOptionsContext {
+        refresh_group: refresh_action,
+    });
 
     let screens = LocalResource::new(move || async move { api::list_screens().await });
-    provide_context(ScreenContext { screens });
+    let screens_memo = Memo::new(move |_| {
+        screens
+            .get()
+            .map(|res| res.unwrap_or_default())
+            .unwrap_or_default()
+    });
+    provide_context(ScreenContext {
+        screens: screens_memo,
+    });
 
     view! {
         <Transition fallback=|| view! { <div>Loading...</div> }>
             <ErrorBoundary fallback=|errors| {
                 view! { <ErrorList errors=errors /> }
             }>
-
+                {move || Suspend::new(async move { screens.await.map(|_| ()) })}
+                {move || Suspend::new(async move { slide_group.await.map(|_| ()) })}
                 <div class="container m-auto px-10">
-                    {move || Suspend::new(async move {
-                        slide_group
-                            .await
-                            .map(|group| {
-                                view! {
-                                    <SlideGroupOptions
-                                        slide_group=Signal::derive(move || group.clone())
-                                        is_editing_options=is_editing_options
-                                        set_editing_options=set_editing_options
-                                    />
-                                }
-                            })
-                    })}
+                    <SlideGroupOptions
+                        slide_group=slide_group_memo
+                        is_editing_options=is_editing_options
+                        set_editing_options=set_editing_options
+                    />
                 </div>
             </ErrorBoundary>
         </Transition>

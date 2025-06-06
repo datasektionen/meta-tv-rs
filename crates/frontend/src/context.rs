@@ -1,14 +1,12 @@
-use common::dtos::{ScreenDto, SlideGroupDto};
+use common::dtos::ScreenDto;
 use leptos::prelude::*;
-
-use crate::api::AppError;
 
 #[derive(Clone)]
 pub struct SlideGroupOptionsContext {
-    pub slide_group: LocalResource<Result<SlideGroupDto, AppError>>,
+    pub refresh_group: Action<(), ()>,
 }
 
 #[derive(Clone)]
 pub struct ScreenContext {
-    pub screens: LocalResource<Result<Vec<ScreenDto>, AppError>>,
+    pub screens: Memo<Vec<ScreenDto>>,
 }

@@ -18,30 +18,27 @@ use crate::{
 /// Should force data to be refreshed when edited.
 #[component]
 pub fn SlideGroupOptions(
-    slide_group: Signal<SlideGroupDto>,
+    #[prop(into)] slide_group: Signal<SlideGroupDto>,
     is_editing_options: ReadSignal<bool>,
     set_editing_options: WriteSignal<bool>,
 ) -> impl IntoView {
     view! {
-        {move || {
-            if is_editing_options.get() {
-                view! {
-                    <SlideGroupEditOptions
-                        slide_group=slide_group
-                        set_editing_options=set_editing_options
-                    />
-                }
-                    .into_any()
-            } else {
+        <Show
+            when=move || is_editing_options.get()
+            fallback=move || {
                 view! {
                     <SlideGroupViewOptions
                         slide_group=slide_group
                         set_editing_options=set_editing_options
                     />
                 }
-                    .into_any()
             }
-        }}
+        >
+            <SlideGroupEditOptions
+                slide_group=slide_group
+                set_editing_options=set_editing_options
+            />
+        </Show>
     }
 }
 
@@ -50,11 +47,11 @@ fn SlideGroupEditOptions(
     slide_group: Signal<SlideGroupDto>,
     set_editing_options: WriteSignal<bool>,
 ) -> impl IntoView {
-    let title = RwSignal::new(slide_group.get().title);
-    let priority = RwSignal::new(slide_group.get().priority);
-    let hidden = RwSignal::new(slide_group.get().hidden);
-    let start_date = RwSignal::new(slide_group.get().start_date);
-    let end_date = RwSignal::new(slide_group.get().end_date);
+    let title = RwSignal::new(slide_group.get_untracked().title);
+    let priority = RwSignal::new(slide_group.get_untracked().priority);
+    let hidden = RwSignal::new(slide_group.get_untracked().hidden);
+    let start_date = RwSignal::new(slide_group.get_untracked().start_date);
+    let end_date = RwSignal::new(slide_group.get_untracked().end_date);
 
     let submit_action = Action::new_local(move |data: &CreateSlideGroupDto| {
         let id = slide_group.get().id;
@@ -70,7 +67,7 @@ fn SlideGroupEditOptions(
     Effect::new(move || {
         // only go back if submitting has succeeded
         if response().map(|res| res.is_ok()).unwrap_or_default() {
-            page_context.slide_group.refetch();
+            page_context.refresh_group.dispatch(());
             set_editing_options.set(false);
         }
     });
@@ -177,11 +174,13 @@ fn SlideGroupViewOptions(
             <button on:click=move |_| set_editing_options.set(true)>Edit</button>
 
             {move || {
-                let group = slide_group.get();
-                (!group.published)
-                    .then(|| {
-                        view! { <SlideGroupPublishButton group_id=group.id /> }
-                    })
+                view! {
+                    <Show when=move || !slide_group.read().published>
+                        <SlideGroupPublishButton group_id=Signal::derive(move || {
+                            slide_group.read().id
+                        }) />
+                    </Show>
+                }
             }}
 
             {move || {
@@ -239,9 +238,11 @@ fn SlideGroupViewOptions(
 }
 
 #[component]
-fn SlideGroupPublishButton(#[prop()] group_id: i32) -> impl IntoView {
-    let publish_action =
-        Action::new_local(move |_: &()| async move { api::publish_slide_group(group_id).await });
+fn SlideGroupPublishButton(#[prop(into)] group_id: Signal<i32>) -> impl IntoView {
+    let publish_action = Action::new_local(move |_: &()| {
+        let id = group_id.get();
+        async move { api::publish_slide_group(id).await }
+    });
 
     let page_context =
         use_context::<SlideGroupOptionsContext>().expect("to have found the context");
@@ -250,7 +251,7 @@ fn SlideGroupPublishButton(#[prop()] group_id: i32) -> impl IntoView {
     let response = move || publish_action.value().get();
     Effect::new(move || {
         if response().map(|res| res.is_ok()).unwrap_or_default() {
-            page_context.slide_group.refetch();
+            page_context.refresh_group.dispatch(());
         }
     });
 

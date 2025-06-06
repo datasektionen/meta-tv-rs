@@ -6,3 +6,4 @@ pub mod feed;
 pub mod slide;
 pub mod slide_group;
 pub mod slide_group_options;
+pub mod utils;

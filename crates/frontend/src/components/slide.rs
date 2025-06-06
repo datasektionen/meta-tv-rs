@@ -1,41 +1,15 @@
-use common::dtos::{CreateSlideDto, ScreenDto, SlideDto, SlideGroupDto};
+use common::dtos::{CreateSlideDto, SlideDto, SlideGroupDto};
 use leptos::prelude::*;
 
 use crate::{
     api,
-    components::{content::ContentItem, error::ErrorList},
+    components::{content::ContentItem, utils::ForVecMemo},
     context::{ScreenContext, SlideGroupOptionsContext},
 };
 
 #[component]
 pub fn SlideList(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
-    let screens = use_context::<ScreenContext>()
-        .expect("expected screen context")
-        .screens;
-
-    view! {
-        <Transition fallback=|| view! { <div>Loading...</div> }>
-            <ErrorBoundary fallback=|errors| {
-                view! { <ErrorList errors=errors /> }
-            }>
-                {move || Suspend::new(async move {
-                    screens
-                        .await
-                        .map(|screens| {
-                            view! { <SlideListInner screens=screens slide_group=slide_group /> }
-                        })
-                })}
-            </ErrorBoundary>
-        </Transition>
-    }
-}
-
-#[component]
-fn SlideListInner(
-    #[prop()] screens: Vec<ScreenDto>,
-    slide_group: Signal<SlideGroupDto>,
-) -> impl IntoView {
-    let group_id = slide_group.get_untracked().id;
+    let group_id = move || slide_group.read().id;
     let max_position = move || {
         slide_group
             .get()
@@ -47,40 +21,34 @@ fn SlideListInner(
     };
 
     view! {
-        <For
-            each=move || slide_group.get().slides.into_iter().enumerate()
-            key=|(_, slide)| slide.id
-            children=move |(index, _)| {
-                let slide = Memo::new(move |_| {
-                    slide_group.with(|slide_group| slide_group.slides.get(index).cloned())
-                });
-                slide
-                    .get()
-                    .map(|slide| {
-                        view! {
-                            <SlideRow
-                                screens=screens.clone()
-                                slide=Signal::derive(move || slide.clone())
-                            />
-                        }
-                    })
+        <ForVecMemo
+            vec=Signal::derive(move || slide_group.get().slides)
+            key=|slide| slide.id
+            fallback=move || {
+                view! {
+                    <div class="h-60 text-center content-center bg-stone-100 rounded-lg my-4">
+                        "There are currently no slides"
+                    </div>
+                }
+            }
+            children=move |slide| {
+                leptos::logging::log!("rerender {}", slide.get_untracked().id);
+                view! { <SlideRow slide=slide /> }
             }
         />
-        <Show when=move || slide_group.get().slides.is_empty()>
-            <div class="h-60 text-center content-center bg-stone-100 rounded-lg my-4">
-                "There are currently no slides"
-            </div>
-        </Show>
-        <AddSlideButton group_id=group_id max_position=Signal::derive(max_position) />
+        <AddSlideButton
+            group_id=Signal::derive(group_id)
+            max_position=Signal::derive(max_position)
+        />
     }
 }
 
 #[component]
-fn AddSlideButton(#[prop()] group_id: i32, max_position: Signal<i32>) -> impl IntoView {
+fn AddSlideButton(#[prop(into)] group_id: Signal<i32>, max_position: Signal<i32>) -> impl IntoView {
     let create_action = Action::new_local(move |position: &i32| {
         let data = CreateSlideDto {
             position: *position,
-            slide_group: group_id,
+            slide_group: group_id.get(),
         };
         async move { api::create_slide(&data).await }
     });
@@ -94,7 +62,7 @@ fn AddSlideButton(#[prop()] group_id: i32, max_position: Signal<i32>) -> impl In
     let response = move || create_action.value().get().map(|r| r.map(|_| ()));
     Effect::new(move || {
         if response().map(|res| res.is_ok()).unwrap_or_default() {
-            page_context.slide_group.refetch();
+            page_context.refresh_group.dispatch(());
         }
     });
 
@@ -114,11 +82,15 @@ fn AddSlideButton(#[prop()] group_id: i32, max_position: Signal<i32>) -> impl In
 }
 
 #[component]
-fn SlideRow(#[prop()] screens: Vec<ScreenDto>, slide: Signal<SlideDto>) -> impl IntoView {
+fn SlideRow(#[prop(into)] slide: Signal<SlideDto>) -> impl IntoView {
+    let screens = use_context::<ScreenContext>()
+        .expect("expected screen context")
+        .screens;
+
     view! {
         <div class="flex gap-4 my-6">
             <For
-                each=move || screens.clone()
+                each=move || screens.get()
                 key=|screen| screen.id
                 children=move |screen| {
                     let content = Memo::new(move |_| {
@@ -131,7 +103,7 @@ fn SlideRow(#[prop()] screens: Vec<ScreenDto>, slide: Signal<SlideDto>) -> impl 
                         <ContentItem
                             screen=screen
                             slide_id=slide.get_untracked().id
-                            content=Signal::from(content)
+                            content=content
                         />
                     }
                 }
