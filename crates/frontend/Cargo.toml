@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-common = { path = "../common", features = ["entity"] }
+common = { path = "../common" }
 leptos = { version = "0.8.2", features = ["csr"] }
 leptos_meta = { version = "0.8.2" }
 leptos_router = { version = "0.8.2" }

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display};
 
-use entity::sea_orm::prelude::*;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -52,9 +52,9 @@ pub struct SlideGroupDto {
     pub priority: i32,
     pub hidden: bool,
     pub created_by: String,
-    pub start_date: DateTimeUtc,
-    pub end_date: Option<DateTimeUtc>,
-    pub archive_date: Option<DateTimeUtc>,
+    pub start_date: DateTime<Utc>,
+    pub end_date: Option<DateTime<Utc>>,
+    pub archive_date: Option<DateTime<Utc>>,
     pub published: bool,
     pub slides: Vec<SlideDto>,
 }
@@ -64,8 +64,8 @@ pub struct CreateSlideGroupDto {
     pub title: String,
     pub priority: i32,
     pub hidden: bool,
-    pub start_date: DateTimeUtc,
-    pub end_date: Option<DateTimeUtc>,
+    pub start_date: DateTime<Utc>,
+    pub end_date: Option<DateTime<Utc>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -83,7 +83,7 @@ pub struct MoveSlidesDto {
 pub struct SlideDto {
     pub id: i32,
     pub position: i32,
-    pub archive_date: Option<DateTimeUtc>,
+    pub archive_date: Option<DateTime<Utc>>,
     pub content: Vec<ContentDto>,
 }
 
@@ -100,7 +100,7 @@ pub struct ContentDto {
     pub screen: i32,
     pub content_type: ContentType,
     pub file_path: String,
-    pub archive_date: Option<DateTimeUtc>,
+    pub archive_date: Option<DateTime<Utc>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
@@ -110,6 +110,7 @@ pub enum ContentType {
     Video,
 }
 
+#[cfg(feature = "entity")]
 impl From<ContentType> for entity::sea_orm_active_enums::ContentType {
     fn from(value: ContentType) -> Self {
         match value {
@@ -120,6 +121,7 @@ impl From<ContentType> for entity::sea_orm_active_enums::ContentType {
     }
 }
 
+#[cfg(feature = "entity")]
 impl From<entity::sea_orm_active_enums::ContentType> for ContentType {
     fn from(value: entity::sea_orm_active_enums::ContentType) -> Self {
         match value {
