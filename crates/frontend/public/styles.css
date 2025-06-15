@@ -34,4 +34,8 @@
   .card {
     @apply bg-white shadow-sm rounded-lg px-5 py-4;
   }
+
+  .text-skeleton {
+    @apply bg-gray-200 rounded-full dark:bg-gray-700 animate-pulse h-[1.2em];
+  }
 }

@@ -1,6 +1,6 @@
 use common::dtos::{
     AppErrorDto, CreateContentDto, CreateSlideDto, CreateSlideGroupDto, CreatedDto, ScreenDto,
-    SlideGroupDto,
+    SessionDto, SlideGroupDto,
 };
 use gloo_net::http::{Request, Response};
 use leptos::{logging, server_fn::serde::de::DeserializeOwned};
@@ -12,8 +12,8 @@ use web_sys::{File, FormData};
 pub enum AppError {
     #[error("Internal error: {0}")]
     Connection(String),
-    #[error("Error: {0}")]
-    Api(#[from] AppErrorDto),
+    #[error("Error ({1}): {0}")]
+    Api(AppErrorDto, u16),
     #[error("Internal error: {0}")]
     Js(String),
     #[error("Internal error: {0}")]
@@ -43,18 +43,24 @@ impl From<serde_json::Error> for AppError {
 
 #[inline]
 async fn handle_response<T: DeserializeOwned>(response: Response) -> Result<T, AppError> {
-    if response.status() >= 400 {
-        Err(response.json::<AppErrorDto>().await?)?;
+    let status = response.status();
+    if status >= 400 {
+        Err(AppError::Api(response.json::<AppErrorDto>().await?, status))?;
     }
     Ok(response.json().await?)
 }
 
 #[inline]
 async fn handle_blank_response(response: Response) -> Result<(), AppError> {
-    if response.status() >= 400 {
-        Err(response.json::<AppErrorDto>().await?)?;
+    let status = response.status();
+    if status >= 400 {
+        Err(AppError::Api(response.json::<AppErrorDto>().await?, status))?;
     }
     Ok(())
+}
+
+pub async fn user_info() -> Result<SessionDto, AppError> {
+    handle_response(Request::get("/auth/user").send().await?).await
 }
 
 pub async fn list_screens() -> Result<Vec<ScreenDto>, AppError> {

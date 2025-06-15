@@ -1,3 +1,4 @@
+use components::layout::Layout;
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::{components::*, path};
@@ -33,9 +34,11 @@ pub fn App() -> impl IntoView {
 
         <Router>
             <Routes fallback=|| view! { NotFound }>
-                <Route path=path!("/") view=Home />
-                <Route path=path!("/new") view=CreateSlideGroup />
-                <Route path=path!("/slides/:id") view=EditSlideGroup />
+                <ParentRoute path=path!("/") view=Layout>
+                    <Route path=path!("") view=Home />
+                    <Route path=path!("new") view=CreateSlideGroup />
+                    <Route path=path!("slides/:id") view=EditSlideGroup />
+                </ParentRoute>
                 <Route path=path!("/feed/:id") view=ScreenFeed />
             </Routes>
         </Router>
