@@ -62,7 +62,7 @@ pub fn ContentItem(
                         }
                     } else if is_readonly {
                         view! {
-                            <div class="w-full h-full bg-stone-100 flex gap-2 flex-col text-xl justify-center items-center">
+                            <div class="w-full h-full bg-base-200 flex gap-2 flex-col text-xl justify-center items-center">
                                 <Icon icon=i::MdiFileDocumentAlert width="2em" height="2em" />
                                 "Empty"
                             </div>
@@ -71,7 +71,7 @@ pub fn ContentItem(
                     } else {
                         view! {
                             <button
-                                class="w-full h-full bg-stone-100 flex gap-2 flex-col text-xl justify-center items-center"
+                                class="w-full h-full bg-base-200 flex gap-2 flex-col text-xl justify-center items-center"
                                 on:click=move |_| is_upload_dialog_open.set(true)
                             >
                                 <Icon icon=i::MdiPlus width="2em" height="2em" />

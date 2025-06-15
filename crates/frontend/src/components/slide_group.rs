@@ -22,14 +22,11 @@ pub fn SlideGroupOverview(#[prop(into)] slide_group: Signal<SlideGroupDto>) -> i
                 let group = slide_group.get();
                 view! {
                     <div class="flex flex-wrap-reverse items-center justify-between gap-2 mb-6">
-                        <h1 class="text-6xl">
+                        <h1 class="card-title text-4xl">
                             <a href=format!("/slides/{}", group.id)>{group.title}</a>
                         </h1>
                         <div class="text-right grow">
-                            <a
-                                href=format!("/slides/{}", group.id)
-                                class="btn inline-flex gap-2 items-center"
-                            >
+                            <a href=format!("/slides/{}", group.id) class="btn btn-primary">
                                 "View Details"
                                 <Icon icon=i::MdiArrowRight width="1.5em" height="1.5em" />
                             </a>

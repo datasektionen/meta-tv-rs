@@ -13,7 +13,7 @@ pub fn Topbar() -> impl IntoView {
             </h1>
             <div class="text-xl">
                 <Transition fallback=move || {
-                    view! { <div class="text-skeleton w-50" /> }.into_any()
+                    view! { <div class="skeleton w-50 h-[1.2em]" /> }.into_any()
                 }>
                     <ErrorBoundary fallback=move |_| {
                         view! { <div>"error :("</div> }.into_any()

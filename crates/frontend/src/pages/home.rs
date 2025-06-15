@@ -46,7 +46,9 @@ pub fn Home() -> impl IntoView {
                         children=move |group| {
                             view! {
                                 <div class="card my-8">
-                                    <SlideGroupOverview slide_group=group />
+                                    <div class="card-body">
+                                        <SlideGroupOverview slide_group=group />
+                                    </div>
                                 </div>
                             }
                                 .into_any()

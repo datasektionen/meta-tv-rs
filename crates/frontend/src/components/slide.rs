@@ -26,7 +26,7 @@ pub fn SlideList(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
             key=|slide| slide.id
             fallback=move || {
                 view! {
-                    <div class="h-60 text-center content-center bg-stone-100 rounded-lg my-4">
+                    <div class="h-60 text-center content-center bg-base-200 rounded-lg my-4">
                         "There are currently no slides"
                     </div>
                 }
