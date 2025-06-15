@@ -32,6 +32,7 @@ pub fn SlideGroupOptions(
                         set_editing_options=set_editing_options
                     />
                 }
+                    .into_any()
             }
         >
             <SlideGroupEditOptions
@@ -40,6 +41,7 @@ pub fn SlideGroupOptions(
             />
         </Show>
     }
+    .into_any()
 }
 
 #[component]
@@ -93,7 +95,7 @@ fn SlideGroupEditOptions(
                 </button>
 
                 <ErrorBoundary fallback=|errors| {
-                    view! { <ErrorList errors=errors /> }
+                    view! { <ErrorList errors=errors /> }.into_any()
                 }>{response}</ErrorBoundary>
                 <input
                     class="border disabled:bg-gray-50 disabled:text-gray-500"
@@ -162,6 +164,7 @@ fn SlideGroupEditOptions(
             </fieldset>
         </form>
     }
+    .into_any()
 }
 
 #[component]
@@ -181,6 +184,7 @@ fn SlideGroupViewOptions(
                         }) />
                     </Show>
                 }
+                    .into_any()
             }}
 
             {move || {
@@ -230,11 +234,13 @@ fn SlideGroupViewOptions(
                         </PropertyDisplay>
                     </div>
                 }
+                    .into_any()
             }}
 
             <SlideList slide_group=slide_group />
         </div>
     }
+    .into_any()
 }
 
 #[component]
@@ -266,6 +272,7 @@ fn SlideGroupPublishButton(#[prop(into)] group_id: Signal<i32>) -> impl IntoView
             Publish
         </button>
     }
+    .into_any()
 }
 
 #[component]
@@ -280,4 +287,5 @@ fn PropertyDisplay(
             <span>{children()}</span>
         </p>
     }
+    .into_any()
 }

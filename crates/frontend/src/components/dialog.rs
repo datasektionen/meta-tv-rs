@@ -26,4 +26,5 @@ pub fn Dialog(
             {children()}
         </dialog>
     }
+    .into_any()
 }

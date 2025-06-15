@@ -30,10 +30,11 @@ pub fn SlideList(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
                         "There are currently no slides"
                     </div>
                 }
+                    .into_any()
             }
             children=move |slide| {
                 leptos::logging::log!("rerender {}", slide.get_untracked().id);
-                view! { <SlideRow slide=slide /> }
+                view! { <SlideRow slide=slide /> }.into_any()
             }
         />
         <AddSlideButton
@@ -41,6 +42,7 @@ pub fn SlideList(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
             max_position=Signal::derive(max_position)
         />
     }
+    .into_any()
 }
 
 #[component]
@@ -106,8 +108,10 @@ fn SlideRow(#[prop(into)] slide: Signal<SlideDto>) -> impl IntoView {
                             content=content
                         />
                     }
+                        .into_any()
                 }
             />
         </div>
     }
+    .into_any()
 }

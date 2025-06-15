@@ -32,4 +32,5 @@ where
         />
         <Show when=move || vec.read().is_empty()>{move || { fallback.read_value().run() }}</Show>
     }
+    .into_any()
 }

@@ -55,7 +55,7 @@ pub fn EditSlideGroup() -> impl IntoView {
     view! {
         <Transition fallback=|| view! { <div>Loading...</div> }>
             <ErrorBoundary fallback=|errors| {
-                view! { <ErrorList errors=errors /> }
+                view! { <ErrorList errors=errors /> }.into_any()
             }>
                 {move || Suspend::new(async move { screens.await.map(|_| ()) })}
                 {move || Suspend::new(async move { slide_group.await.map(|_| ()) })}
@@ -69,4 +69,5 @@ pub fn EditSlideGroup() -> impl IntoView {
             </ErrorBoundary>
         </Transition>
     }
+    .into_any()
 }

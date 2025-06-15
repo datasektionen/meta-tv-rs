@@ -78,9 +78,11 @@ pub fn SlideGroupOverview(#[prop(into)] slide_group: Signal<SlideGroupDto>) -> i
                         </PropertyDisplay>
                     </div>
                 }
+                    .into_any()
             }} <SlideList slide_group=slide_group />
         </div>
     }
+    .into_any()
 }
 
 #[component]
@@ -95,4 +97,5 @@ fn PropertyDisplay(
             <span>{children()}</span>
         </p>
     }
+    .into_any()
 }

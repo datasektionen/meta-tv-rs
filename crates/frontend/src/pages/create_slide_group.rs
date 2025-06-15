@@ -25,7 +25,9 @@ pub fn CreateSlideGroup() -> impl IntoView {
     let is_submitting = submit_action.pending();
     let response = move || {
         submit_action.value().get().map(|res| {
-            res.map(|created| view! { <Redirect path=format!("/slides/{}", created.id) /> })
+            res.map(|created| {
+                view! { <Redirect path=format!("/slides/{}", created.id) /> }.into_any()
+            })
         })
     };
 
@@ -49,9 +51,10 @@ pub fn CreateSlideGroup() -> impl IntoView {
             </form>
 
             <ErrorBoundary fallback=|errors| {
-                view! { <ErrorList errors=errors /> }
+                view! { <ErrorList errors=errors /> }.into_any()
             }>{response}</ErrorBoundary>
 
         </div>
     }
+    .into_any()
 }

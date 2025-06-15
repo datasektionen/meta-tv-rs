@@ -83,7 +83,7 @@ pub fn ContentItem(
                 }}
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 #[component]

@@ -17,4 +17,5 @@ pub fn Alert(
             <div>{children()}</div>
         </div>
     }
+    .into_any()
 }

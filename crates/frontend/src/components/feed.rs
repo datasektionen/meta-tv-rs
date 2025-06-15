@@ -84,6 +84,7 @@ pub fn ScreenFeedSlideshow(feed: Signal<Vec<FeedEntryDto>>) -> impl IntoView {
                 })
         }}
     }
+    .into_any()
 }
 
 /// Get a feed and calculate the slide that should be displayed, along with how long until the next

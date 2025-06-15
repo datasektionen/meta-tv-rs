@@ -41,4 +41,5 @@ pub fn ScreenFeed() -> impl IntoView {
             <ScreenFeedSlideshow feed=Signal::derive(data) />
         </Transition>
     }
+    .into_any()
 }

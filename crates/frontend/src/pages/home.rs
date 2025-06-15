@@ -28,7 +28,7 @@ pub fn Home() -> impl IntoView {
     });
 
     view! {
-        <Transition fallback=|| view! { <div>Loading...</div> }>
+        <Transition fallback=|| view! { <div>Loading...</div> }.into_any()>
             <ErrorBoundary fallback=|errors| {
                 view! { <ErrorList errors=errors /> }
             }>
@@ -49,10 +49,12 @@ pub fn Home() -> impl IntoView {
                                     <SlideGroupOverview slide_group=group />
                                 </div>
                             }
+                                .into_any()
                         }
                     />
                 </div>
             </ErrorBoundary>
         </Transition>
     }
+    .into_any()
 }

@@ -19,4 +19,5 @@ pub fn ErrorList(errors: ArcRwSignal<Errors>) -> impl IntoView {
 
         </ul>
     }
+    .into_any()
 }
