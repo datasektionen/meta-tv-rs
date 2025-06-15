@@ -33,7 +33,6 @@ pub fn SlideList(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
                     .into_any()
             }
             children=move |slide| {
-                leptos::logging::log!("rerender {}", slide.get_untracked().id);
                 view! { <SlideRow slide=slide /> }.into_any()
             }
         />
