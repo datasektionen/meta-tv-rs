@@ -24,11 +24,7 @@ pub fn ScreenFeed() -> impl IntoView {
     let event_source = use_event_source_with_options::<Vec<FeedEntryDto>, JsonSerdeCodec>(
         &api::get_screen_feed_url(id),
         UseEventSourceOptions::default()
-            // Upstream has the condition inverted, so we have to tell it to not reconnect
-            // in order for reconnects to work.
-            // See https://github.com/Synphonyte/leptos-use/issues/242
-            // TODO: change to ReconnectLimit::Infinite when above issue is fixed
-            .reconnect_limit(ReconnectLimit::Limited(0))
+            .reconnect_limit(ReconnectLimit::Infinite)
             .reconnect_interval(10_000), // 10 seconds
     );
 
