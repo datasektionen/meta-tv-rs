@@ -32,23 +32,32 @@ pub fn CreateSlideGroup() -> impl IntoView {
     };
 
     view! {
-        <div class="container">
-            <form on:submit=move |ev| {
-                ev.prevent_default();
-                submit_action.dispatch(title.read().to_string());
-            }>
-                <fieldset disabled=is_submitting>
-                    <input
-                        class="border disabled:bg-gray-50 disabled:text-gray-500"
-                        type="text"
-                        bind:value=title
-                    />
+        <div class="container m-auto flex min-h-[80vh]">
+            <div class="card max-w-100 m-auto">
+                <form on:submit=move |ev| {
+                    ev.prevent_default();
+                    submit_action.dispatch(title.read().to_string());
+                }>
+                    <h1 class="text-4xl mb-4">"Create slide group"</h1>
+                    <fieldset disabled=is_submitting>
+                        <label class="label mb-4">
+                            "Name"
+                            <input
+                                class="input"
+                                type="text"
+                                placeholder="My amazing slideshow"
+                                bind:value=title
+                            />
+                        </label>
 
-                    <button type="submit" class="border disabled:text-gray-500">
-                        Create
-                    </button>
-                </fieldset>
-            </form>
+                        <div class="flex justify-end">
+                            <button type="submit" class="btn">
+                                Create
+                            </button>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
 
             <ErrorBoundary fallback=|errors| {
                 view! { <ErrorList errors=errors /> }.into_any()

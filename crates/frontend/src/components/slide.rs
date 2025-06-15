@@ -32,9 +32,7 @@ pub fn SlideList(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
                 }
                     .into_any()
             }
-            children=move |slide| {
-                view! { <SlideRow slide=slide /> }.into_any()
-            }
+            children=move |slide| { view! { <SlideRow slide=slide /> }.into_any() }
         />
         <AddSlideButton
             group_id=Signal::derive(group_id)
