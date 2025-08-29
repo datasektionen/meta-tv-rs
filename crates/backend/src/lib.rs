@@ -6,6 +6,7 @@ use rocket::{
     fairing::{self, AdHoc},
     Build, Rocket,
 };
+use sea_orm::{ActiveModelTrait, ActiveValue::Set};
 use sea_orm_rocket::Database;
 
 #[macro_use]
@@ -26,12 +27,46 @@ async fn run_migrations(rocket: Rocket<Build>) -> fairing::Result {
     Ok(rocket)
 }
 
+async fn setup_screens(rocket: Rocket<Build>) -> fairing::Result {
+    let conn = &Db::fetch(&rocket).unwrap().conn;
+
+    entity::screen::ActiveModel {
+        name: Set("Left".to_string()),
+        position: Set(0),
+        ..Default::default()
+    }
+    .insert(conn)
+    .await
+    .unwrap();
+
+    entity::screen::ActiveModel {
+        name: Set("Center".to_string()),
+        position: Set(1),
+        ..Default::default()
+    }
+    .insert(conn)
+    .await
+    .unwrap();
+
+    entity::screen::ActiveModel {
+        name: Set("Right".to_string()),
+        position: Set(2),
+        ..Default::default()
+    }
+    .insert(conn)
+    .await
+    .unwrap();
+
+    Ok(rocket)
+}
+
 pub(crate) fn rocket() -> Rocket<Build> {
     rocket::build()
         .attach(FilesInitializer)
         .attach(OidcInitializer)
         .attach(Db::init())
         .attach(AdHoc::try_on_ignite("Migrations", run_migrations))
+        .attach(AdHoc::try_on_ignite("Screens", setup_screens))
         .mount(
             "/api",
             routes![
