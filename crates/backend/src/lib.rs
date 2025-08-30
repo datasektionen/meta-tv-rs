@@ -6,7 +6,7 @@ use rocket::{
     fairing::{self, AdHoc},
     Build, Rocket,
 };
-use sea_orm::{ActiveModelTrait, ActiveValue::Set};
+use sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait};
 use sea_orm_rocket::Database;
 
 #[macro_use]
@@ -29,6 +29,10 @@ async fn run_migrations(rocket: Rocket<Build>) -> fairing::Result {
 
 async fn setup_screens(rocket: Rocket<Build>) -> fairing::Result {
     let conn = &Db::fetch(&rocket).unwrap().conn;
+
+    if entity::screen::Entity::find().one(conn).await.unwrap().is_some() {
+        return Ok(rocket)
+    }
 
     entity::screen::ActiveModel {
         name: Set("Left".to_string()),
