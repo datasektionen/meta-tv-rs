@@ -105,25 +105,6 @@ pub fn util_create_slide(client: &TestClient, id: i32, position: i32) {
     assert_created!(response, "/api/slide", id);
 }
 
-pub fn util_create_screens(client: &TestClient) {
-    macro_rules! create_screen {
-        ($name: expr, $position: expr, $id: expr) => {
-            let response = client
-                .post("/api/screen")
-                .json(&CreateScreenDto {
-                    name: $name.to_string(),
-                    position: $position,
-                })
-                .dispatch();
-            assert_created!(response, "/api/screen", $id);
-        };
-    }
-
-    create_screen!("Left", 0, 1);
-    create_screen!("Center", 1, 2);
-    create_screen!("Right", 2, 3);
-}
-
 fn get_user_cookie(username: &str, is_admin: bool) -> Cookie<'static> {
     let session = Session {
         username: username.to_string(),

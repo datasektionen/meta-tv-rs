@@ -86,9 +86,7 @@ mod tests {
     use sea_orm::prelude::DateTimeUtc;
 
     use crate::assert_created;
-    use crate::test_utils::{
-        util_create_screens, util_create_slide, util_create_slide_group, TestClient,
-    };
+    use crate::test_utils::{util_create_slide, util_create_slide_group, TestClient};
 
     fn util_prepare_upload(data: &CreateContentDto, file: &str) -> (http::ContentType, String) {
         // There isn't a better way to test this :/
@@ -119,7 +117,6 @@ mod tests {
         let mut client = TestClient::new();
         client.login_as("johndoe", false);
 
-        util_create_screens(&client);
         util_create_slide_group(&client);
         util_create_slide(&client, 1, 1);
 
@@ -207,7 +204,6 @@ mod tests {
         let mut client = TestClient::new();
         client.login_as("johndoe", false);
 
-        util_create_screens(&client);
         util_create_slide_group(&client);
         util_create_slide(&client, 1, 1);
 
@@ -277,36 +273,36 @@ mod tests {
         );
     }
 
-    #[test]
-    fn missing_screen() {
-        let mut client = TestClient::new();
-        client.login_as("johndoe", false);
-
-        util_create_slide_group(&client);
-        util_create_slide(&client, 1, 1);
-
-        let data = CreateContentDto {
-            slide: 1,
-            screen: 1,
-            content_type: ContentType::Html,
-        };
-        let (ct, body) = util_prepare_upload(&data, "<p>hello world</p>");
-        let response = client.post("/api/content").header(ct).body(body).dispatch();
-        assert_eq!(response.status(), Status::NotFound);
-        assert_eq!(
-            response.into_json(),
-            Some(AppErrorDto {
-                msg: "screen not found".to_string()
-            })
-        );
-    }
+    // screens are created by default
+    // #[test]
+    // fn missing_screen() {
+    //     let mut client = TestClient::new();
+    //     client.login_as("johndoe", false);
+    //
+    //     util_create_slide_group(&client);
+    //     util_create_slide(&client, 1, 1);
+    //
+    //     let data = CreateContentDto {
+    //         slide: 1,
+    //         screen: 1,
+    //         content_type: ContentType::Html,
+    //     };
+    //     let (ct, body) = util_prepare_upload(&data, "<p>hello world</p>");
+    //     let response = client.post("/api/content").header(ct).body(body).dispatch();
+    //     assert_eq!(response.status(), Status::NotFound);
+    //     assert_eq!(
+    //         response.into_json(),
+    //         Some(AppErrorDto {
+    //             msg: "screen not found".to_string()
+    //         })
+    //     );
+    // }
 
     #[test]
     fn missing_slide() {
         let mut client = TestClient::new();
         client.login_as("johndoe", false);
 
-        util_create_screens(&client);
 
         let data = CreateContentDto {
             slide: 1,

@@ -109,6 +109,8 @@ async fn compute_feed(screen: i32, db: &DatabaseConnection) -> Result<Vec<FeedEn
         .order_by_asc(entity::content::Column::Id)
         // ensure published
         .filter(entity::slide_group::Column::Published.eq(true))
+        // ensure not hidden
+        .filter(entity::slide_group::Column::Hidden.eq(false))
         // ensure not archived
         // NOTE: archive_date of content is checked in join statement
         .filter(entity::slide_group::Column::ArchiveDate.is_null())
@@ -168,6 +170,7 @@ mod tests {
 
         // --- SEED DATA ---
 
+        // screens added by default but not in this test due to custom db
         // add screens
         let screens = [
             entity::screen::ActiveModel {
@@ -488,11 +491,11 @@ mod tests {
         assert_eq!(
             feed,
             [
-                FeedEntryDto {
-                    content_type: ContentTypeDto::Html,
-                    file_path: "slide_11_content_0".to_string(),
-                    duration: FEED_ENTRY_DURATION,
-                },
+                // FeedEntryDto {
+                //     content_type: ContentTypeDto::Html,
+                //     file_path: "slide_11_content_0".to_string(),
+                //     duration: FEED_ENTRY_DURATION,
+                // },
                 FeedEntryDto {
                     content_type: ContentTypeDto::Image,
                     file_path: "slide_8_content_1".to_string(),
@@ -520,11 +523,11 @@ mod tests {
         assert_eq!(
             feed,
             [
-                FeedEntryDto {
-                    content_type: ContentTypeDto::Video,
-                    file_path: "slide_11_content_1".to_string(),
-                    duration: FEED_ENTRY_DURATION,
-                },
+                // FeedEntryDto {
+                //     content_type: ContentTypeDto::Video,
+                //     file_path: "slide_11_content_1".to_string(),
+                //     duration: FEED_ENTRY_DURATION,
+                // },
                 FeedEntryDto {
                     content_type: ContentTypeDto::Image,
                     file_path: "".to_string(), // slide 8

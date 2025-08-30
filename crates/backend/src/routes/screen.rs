@@ -67,9 +67,10 @@ mod tests {
             };
         }
 
-        create_screen!("Left", 0, 1);
-        create_screen!("Right", 2, 2);
-        create_screen!("Center", 1, 3);
+        // screens are created by default
+        // create_screen!("Left", 0, 1);
+        // create_screen!("Right", 2, 2);
+        // create_screen!("Center", 1, 3);
 
         let response = client.get("/api/screen").dispatch();
         assert_eq!(response.status(), Status::Ok);
@@ -82,12 +83,12 @@ mod tests {
                     position: 0,
                 },
                 ScreenDto {
-                    id: 3,
+                    id: 2,
                     name: "Center".to_string(),
                     position: 1,
                 },
                 ScreenDto {
-                    id: 2,
+                    id: 3,
                     name: "Right".to_string(),
                     position: 2,
                 }

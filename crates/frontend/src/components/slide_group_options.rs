@@ -294,8 +294,8 @@ fn SlideGroupViewOptions(
                         )>
                             {move || fmt_if(
                                 group.hidden,
-                                "Hidden from others",
-                                "Shown to everyone",
+                                "Hidden",
+                                "Shown",
                             )}
                         </PropertyDisplay>
                         <PropertyDisplay icon=i::MdiClock class="col-span-2">
