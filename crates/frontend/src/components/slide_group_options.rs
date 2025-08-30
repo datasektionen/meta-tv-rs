@@ -86,82 +86,155 @@ fn SlideGroupEditOptions(
                     end_date: *end_date.read(),
                 });
         }>
-            <fieldset disabled=is_submitting>
-                <button type="button" on:click=move |_| set_editing_options.set(false)>
-                    Cancel
-                </button>
-                <button type="submit" class="border disabled:text-gray-500">
-                    Save
-                </button>
-
-                <ErrorBoundary fallback=|errors| {
-                    view! { <ErrorList errors=errors /> }.into_any()
-                }>{response}</ErrorBoundary>
-                <input
-                    class="border disabled:bg-gray-50 disabled:text-gray-500"
-                    type="text"
-                    bind:value=title
-                />
-                <input
-                    class="border disabled:bg-gray-50 disabled:text-gray-500"
-                    type="checkbox"
-                    prop:checked=move || { priority.get() > 0 }
-                    on:change:target=move |ev| {
-                        priority.set(if ev.target().checked() { 1 } else { 0 })
-                    }
-                />
-                <input
-                    class="border disabled:bg-gray-50 disabled:text-gray-500"
-                    type="checkbox"
-                    bind:checked=hidden
-                />
-                <p>Dates are in your local timezone</p>
-                <input
-                    class="border disabled:bg-gray-50 disabled:text-gray-500"
-                    type="datetime-local"
-                    step=1
-                    prop:value=move || { datetime_to_input(&start_date.get()) }
-                    on:change:target=move |ev| {
-                        if let Some(dt) = input_to_datetime(&ev.target().value()) {
-                            start_date.set(dt);
-                        }
-                    }
-                />
-                {move || match end_date.get() {
-                    Some(end_date_value) => {
-                        view! {
-                            <p>Dates are in your local timezone</p>
+            <div class="space-y-12">
+                <div class="border-b border-gray-100/10 pb-12">
+                    <fieldset disabled=is_submitting>
+                        <h2 class="text-base/7 font-semibold">General</h2>
+                        <ErrorBoundary fallback=|errors| {
+                            view! { <ErrorList errors=errors /> }.into_any()
+                        }>{response}</ErrorBoundary>
+                        <div class="sm:col-span-4 mt-6">
+                          <label for="title" class="block text-sm/6 font-medium">Title</label>
+                          <div class="mt-2">
                             <input
-                                class="border disabled:bg-gray-50 disabled:text-gray-500"
-                                type="datetime-local"
-                                step=1
-                                prop:value=move || { datetime_to_input(&end_date_value) }
-                                on:change:target=move |ev| {
-                                    if let Some(dt) = input_to_datetime(&ev.target().value()) {
-                                        end_date.set(Some(dt));
-                                    }
-                                }
+                                name="title"
+                                class="input block w-full rounded-md px-3 py-1.5 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                                type="text"
+                                bind:value=title
                             />
-                            <button type="button" on:click=move |_| { end_date.set(None) }>
-                                Remove end date
-                            </button>
-                        }
-                            .into_any()
-                    }
-                    None => {
+                          </div>
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="border-b border-gray-100/10 pb-12">
+                    <fieldset disabled=is_submitting>
+                        <h2 class="text-base/7 font-semibold">Visability</h2>
+                        <div class="mt-6 space-y-6">
+                            <div class="flex gap-3">
+                                <div class="flex h-6 shrink-0 items-center">
+                                    <div class="grid size-4 grid-cols-1">
+                                        <input
+                                            type="checkbox"
+                                            name="priority"
+                                            aria-describedby="marked-priority"
+                                            class="col-start-1 row-start-1 rounded-sm border border-gray-300 checked:border-indigo-600 checked:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto" 
+                                            prop:checked=move || { priority.get() > 0 }
+                                            on:change:target=move |ev| {
+                                                priority.set(if ev.target().checked() { 1 } else { 0 })
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                                <div class="text-sm/6">
+                                    <label for="priority" class="label font-medium">Pinn</label>
+                                    <p class="text-gray-500">Make this slide group the only on shown on the tv.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3 space-y-6">
+                            <div class="flex gap-3">
+                                <div class="flex h-6 shrink-0 items-center">
+                                    <div class="grid size-4 grid-cols-1">
+                                        <input
+                                            type="checkbox"
+                                            name="hidden"
+                                            aria-describedby="mark-hidden"
+                                            class="col-start-1 row-start-1 rounded-sm border border-gray-300 checked:border-indigo-600 checked:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto" 
+                                            bind:checked=hidden
+                                        />
+                                    </div>
+                                </div>
+                                <div class="text-sm/6">
+                                    <label for="hidden" class="label font-medium">Hidden</label>
+                                    <p class="text-gray-500">Remove this slide group from the tv.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="border-b border-gray-900/10 pb-12">
+                    <fieldset disabled=is_submitting>
+                        <h2 class="text-base/7 font-semibold">Active Timespan</h2>
+                        <div class="col-span-full mt-6">     
+                            <label for="start-date" class="block text-sm/6 font-medium">Start</label>
+                            <div class="mt-3 space-y-6">
+                                <div class="flex gap-3">
+                                    <div class="flex w-full items-center">
+                                        <div class="grid w-full grid-cols-1">
+                                            <input
+                                                class="col-start-1 row-start-1 input border disabled:bg-gray-50 disabled:text-gray-500"
+                                                type="datetime-local"
+                                                step=1
+                                                prop:value=move || { datetime_to_input(&start_date.get()) }
+                                                on:change:target=move |ev| {
+                                                    if let Some(dt) = input_to_datetime(&ev.target().value()) {
+                                                        start_date.set(dt);
+                                                    }
+                                                }
+                                            />
+                                            <p class="mt-3 text-sm/6 text-gray-600">Dates are in your local timezone</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {move || match end_date.get() {
+                            Some(end_date_value) => {
+                                view! {
+                                    <div class="col-span-full mt-6">     
+                                        <label for="end-date" class="block text-sm/6 font-medium">End</label>
+                                        <div class="mt-3 space-y-6">
+                                            <div class="flex gap-3">
+                                                <div class="flex w-full items-center">
+                                                    <div class="grid w-full grid-cols-1">
+                                                        <input
+                                                            class="col-start-1 row-start-1 input border disabled:bg-gray-50 disabled:text-gray-500"
+                                                            type="datetime-local"
+                                                            step=1
+                                                            prop:value=move || { datetime_to_input(&end_date_value) }
+                                                            on:change:target=move |ev| {
+                                                                if let Some(dt) = input_to_datetime(&ev.target().value()) {
+                                                                    end_date.set(Some(dt));
+                                                                }
+                                                            }
+                                                        />
+                                                        <p class="mt-3 text-sm/6 text-gray-600">Dates are in your local timezone</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button class="btn" type="button" on:click=move |_| { end_date.set(None) }>
+                                        Remove end date
+                                    </button>
+                                }
+                                    .into_any()
+                            }
+                            None => {
 
-                        view! {
-                            <button
-                                type="button"
-                                on:click=move |_| { end_date.set(Some(Utc::now())) }
-                            >
-                                Add end date
+                                view! {
+                                    <button
+                                        class="btn"
+                                        type="button"
+                                        on:click=move |_| { end_date.set(Some(Utc::now())) }
+                                    >
+                                        Add end date
+                                    </button>
+                                }
+                                    .into_any()
+                            }
+                        }}
+                        <div class="mt-6 flex gap-6">
+                            <button class="btn" type="button" on:click=move |_| set_editing_options.set(false)>
+                                Cancel
                             </button>
-                        }
-                            .into_any()
-                    }
-                }}
-            </fieldset>
+                            <button type="submit" class="btn border disabled:text-gray-500">
+                                Save
+                            </button>
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
         </form>
     }
     .into_any()
@@ -174,7 +247,7 @@ fn SlideGroupViewOptions(
 ) -> impl IntoView {
     view! {
         <div>
-            <button on:click=move |_| set_editing_options.set(true)>Edit</button>
+            <button on:click=move |_| set_editing_options.set(true) class="btn">Edit</button>
 
             {move || {
                 view! {
@@ -264,6 +337,7 @@ fn SlideGroupPublishButton(#[prop(into)] group_id: Signal<i32>) -> impl IntoView
     view! {
         {response}
         <button
+            class="btn"
             disabled=is_submitting
             on:click=move |_| {
                 publish_action.dispatch(());
