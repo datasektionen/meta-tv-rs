@@ -28,7 +28,7 @@ job "meta-tv" {
       template {
         data        = <<ENV
 {{ with nomadVar "nomad/jobs/meta-tv" }}
-ROCKET_DATABASES={sea_orm={url="postgresql://metatv:{{ .db_password }}@db/metatv"}}
+        ROCKET_DATABASES={sea_orm={url="postgresql://metatv:{{ .db_password }}@postgres.dsekt.internal:5432/metatv"}}
 ROCKET_OIDC={issuer_url="https://sso.datasektionen.se/op",client_id="{{ .oidc_client_id }}",client_secret="{{ .oidc_client_secret }}",redirect_url="http://localhost:8000/auth/oidc-callback"}
 ROCKET_SECRET_KEY={{ .app_secret }}
 {{ end }}
