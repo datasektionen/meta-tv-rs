@@ -12,8 +12,8 @@ job "meta-tv" {
       provider = "nomad"
       tags = [
         "traefik.enable=true",
-        "traefik.http.routers.betting.rule=Host(`tv.betasektionen.se`)",
-        "traefik.http.routers.betting.tls.certresolver=default",
+        "traefik.http.routers.meta-tv.rule=Host(`tv.betasektionen.se`)",
+        "traefik.http.routers.meta-tv.tls.certresolver=default",
       ]
     }
 
