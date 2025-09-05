@@ -24,10 +24,11 @@ pub struct Session {
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Session {
-    type Error = std::convert::Infallible;
+    type Error = String;
 
     async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error> {
-        get_current_session(request.cookies()).or_forward(Status::Unauthorized)
+        get_current_session(request.cookies())
+            .or_error((Status::Unauthorized, String::from("Need to be logged in")))
     }
 }
 

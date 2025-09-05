@@ -1,0 +1,41 @@
+services:
+  app:
+    build:
+      dockerfile: ./Dockerfile
+    ports:
+      - 8000:8000
+    environment:
+      - ROCKET_DATABASES={sea_orm={url="postgresql://postgres:postgres@db/metatv"}}
+      - ROCKET_OIDC={issuer_url="https://sso.datasektionen.se/op",client_id="${CLIENT_ID}",client_secret="${CLIENT_SECRET}",redirect_url="http://localhost:8000/auth/oidc-callback"}
+      - ROCKET_UPLOAD_DIR="./uploads"
+      - ROCKET_SECRET_KEY=2hMUcPB1UjTd2W8aZDBxoUC27R0z9c56992m3x2MTE4D
+      - ROCKET_ADDRESS=0.0.0.0
+      - ROCKET_PORT=8000
+      - ROCKET_LIMITS_FILE=50MiB
+      - ROCKET_LIMITS_DATA_FORM=51MiB
+    volumes:
+      - upload:/srv/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:15
+    container_name: db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=metatv
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "sh -c 'pg_isready -d metatv -U postgres'"
+      interval: 1s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  upload:

@@ -1,9 +1,12 @@
+use std::path::{Path, PathBuf};
+
 use auth::oidc::OidcInitializer;
 use files::FilesInitializer;
 use migration::MigratorTrait;
 use pool::Db;
 use rocket::{
     fairing::{self, AdHoc},
+    fs::{FileServer, NamedFile},
     Build, Rocket,
 };
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait};
@@ -21,6 +24,23 @@ mod routes;
 #[cfg(test)]
 mod test_utils;
 
+#[get("/<file..>", rank = 12)]
+async fn serve_file(file: PathBuf) -> Option<NamedFile> {
+    let file = NamedFile::open(Path::new("/www/static/").join(file))
+        .await
+        .ok();
+
+    if let Some(file) = file {
+        if !file.path().is_dir() {
+            return Some(file);
+        }
+    }
+
+    NamedFile::open(Path::new("/www/static/index.html"))
+        .await
+        .ok()
+}
+
 async fn run_migrations(rocket: Rocket<Build>) -> fairing::Result {
     let conn = &Db::fetch(&rocket).unwrap().conn;
     let _ = migration::Migrator::up(conn, None).await;
@@ -30,8 +50,13 @@ async fn run_migrations(rocket: Rocket<Build>) -> fairing::Result {
 async fn setup_screens(rocket: Rocket<Build>) -> fairing::Result {
     let conn = &Db::fetch(&rocket).unwrap().conn;
 
-    if entity::screen::Entity::find().one(conn).await.unwrap().is_some() {
-        return Ok(rocket)
+    if entity::screen::Entity::find()
+        .one(conn)
+        .await
+        .unwrap()
+        .is_some()
+    {
+        return Ok(rocket);
     }
 
     entity::screen::ActiveModel {
@@ -71,6 +96,8 @@ pub(crate) fn rocket() -> Rocket<Build> {
         .attach(Db::init())
         .attach(AdHoc::try_on_ignite("Migrations", run_migrations))
         .attach(AdHoc::try_on_ignite("Screens", setup_screens))
+        .mount("/", FileServer::from("/www/static/").rank(11))
+        .mount("/", routes![serve_file])
         .mount(
             "/api",
             routes![
@@ -94,7 +121,7 @@ pub(crate) fn rocket() -> Rocket<Build> {
             "/auth",
             routes![
                 routes::auth::login,
-                routes::auth::login_authenticated,
+                // routes::auth::login_authenticated,
                 routes::auth::logout,
                 routes::auth::oidc_callback,
                 routes::auth::user_info,
