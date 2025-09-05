@@ -17,6 +17,11 @@ job "meta-tv" {
       ]
     }
 
+    volume "uploads" {
+      type = "host"
+      source = "meta-tv/uploads"
+    }
+
     task "meta-tv" {
       driver = "docker"
 
@@ -40,6 +45,11 @@ ROCKET_LIMITS_DATA_FORM=51MiB
 ENV
         destination = "local/.env"
         env         = true
+      }
+
+      volume_mount {
+        volume = "uploads"
+        destination = "/srv/uploads"
       }
 
       resources {
