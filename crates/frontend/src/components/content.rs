@@ -140,9 +140,9 @@ pub fn UploadContentDialog(
                     }
                 }>
                     <fieldset disabled=is_submitting>
-                        <div>
+                        <div class="w-2xs overflow-hidden">
                             <input
-                                class="overflow-hidden"
+                                class="rounded-sm input"
                                 node_ref=input_ref
                                 type="file"
                                 accept="image/*,video/*,text/html"
