@@ -1,0 +1,15 @@
+[build]
+# The index HTML file to drive the bundling process.
+target = "./index.html"
+# Build in release mode.
+release = false
+# The output dir for all final assets.
+dist = "dist"
+# The public URL from which assets are to be served.
+public_url = "/"
+# Whether to include hash values in the output file names.
+filehash = true
+# Whether to inject scripts (and module preloads) into the finalized output.
+inject_scripts = true
+# Control minification
+minify = "on_release"

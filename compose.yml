@@ -1,7 +1,7 @@
 services:
   app:
     build:
-      dockerfile: ./Dockerfile
+      dockerfile: ./Dockerfile.dev
     ports:
       - 8000:8000
     environment:
@@ -18,6 +18,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    develop:
+      watch:
+        - action: rebuild
+          path: crates/
   db:
     image: postgres:15
     container_name: db

@@ -128,7 +128,7 @@ pub fn UploadContentDialog(
 
     view! {
         <Dialog open=open>
-            <div class="card">
+            <div class="card space-y-6 p-4">
                 <form on:submit=move |ev| {
                     ev.prevent_default();
                     if let Some(file) = input_ref
@@ -140,18 +140,23 @@ pub fn UploadContentDialog(
                     }
                 }>
                     <fieldset disabled=is_submitting>
-                        <input
-                            node_ref=input_ref
-                            type="file"
-                            accept="image/*,video/*,text/html"
-                            required="true"
-                        />
-                        <button class="btn" type="submit">
-                            "Upload"
-                        </button>
-                        <button class="btn" type="button" on:click=move |_| open.set(false)>
-                            "Cancel"
-                        </button>
+                        <div>
+                            <input
+                                class="overflow-hidden"
+                                node_ref=input_ref
+                                type="file"
+                                accept="image/*,video/*,text/html"
+                                required="true"
+                            />
+                        </div>
+                        <div class="mt-6 flex gap-3">
+                            <button class="btn" type="submit">
+                                "Upload"
+                            </button>
+                            <button class="btn" type="button" on:click=move |_| open.set(false)>
+                                "Cancel"
+                            </button>
+                        </div>
                     </fieldset>
                 </form>
             </div>
