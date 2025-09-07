@@ -1,6 +1,7 @@
 use common::dtos::{CreateSlideDto, MoveSlidesDto};
+use entity::slide;
 use rocket::{http::Status, serde::json::Json};
-use sea_orm::{ActiveModelTrait, EntityTrait, Set, TransactionTrait};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TransactionTrait};
 use sea_orm_rocket::Connection;
 
 use crate::{auth::Session, error::AppError, pool::Db};
@@ -56,6 +57,25 @@ pub async fn bulk_move_slides(
             .await?;
         }
     }
+
+    txn.commit().await?;
+
+    Ok(Status::NoContent)
+}
+
+#[delete("/slide/<id>")]
+pub async fn delete_slide(
+    _session: Session,
+    id: i32,
+    conn: Connection<'_, Db>,
+) -> Result<Status, AppError> {
+    let db = conn.into_inner();
+    let txn = db.begin().await?;
+
+    entity::slide::Entity::delete_many()
+        .filter(entity::slide::Column::Id.eq(id))
+        .exec(&txn)
+        .await?;
 
     txn.commit().await?;
 

@@ -129,6 +129,19 @@ pub async fn upload_content(data: &CreateContentDto, file: &File) -> Result<Crea
     .await
 }
 
+pub async fn archive_slide_group(id: i32) -> Result<(), AppError> {
+    handle_blank_response(
+        Request::delete(&format!("/api/slide-group/{id}"))
+            .send()
+            .await?,
+    )
+    .await
+}
+
+pub async fn delete_slide_row(id: i32) -> Result<(), AppError> {
+    handle_blank_response(Request::delete(&format!("/api/slide/{id}")).send().await?).await
+}
+
 pub fn get_screen_feed_url(screen_id: i32) -> String {
     format!("/api/feed/{screen_id}")
 }

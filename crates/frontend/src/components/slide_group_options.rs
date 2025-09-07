@@ -6,7 +6,7 @@ use leptos_icons::Icon;
 
 use crate::{
     api,
-    components::{alert::Alert, error::ErrorList, slide::SlideList},
+    components::{dialog::Dialog, alert::Alert, error::ErrorList, slide::SlideList},
     context::SlideGroupOptionsContext,
     utils::{
         bool::fmt_if,
@@ -74,7 +74,14 @@ fn SlideGroupEditOptions(
         }
     });
 
+    let is_delete_dialog_open = RwSignal::new(false);
+
     view! {
+        <DeleteDialog
+            slide_group_id=slide_group.get().id
+            open=is_delete_dialog_open
+            set_editing_options=set_editing_options
+        />
         <form on:submit=move |ev| {
             ev.prevent_default();
             submit_action
@@ -225,11 +232,14 @@ fn SlideGroupEditOptions(
                             }
                         }}
                         <div class="mt-6 flex gap-6">
+                            <button type="submit" class="btn border disabled:text-gray-500">
+                                Save
+                            </button>
                             <button class="btn" type="button" on:click=move |_| set_editing_options.set(false)>
                                 Cancel
                             </button>
-                            <button type="submit" class="btn border disabled:text-gray-500">
-                                Save
+                            <button class="btn" type="button" on:click=move |_| is_delete_dialog_open.set(true)>
+                                Delete
                             </button>
                         </div>
                     </fieldset>
@@ -247,17 +257,23 @@ fn SlideGroupViewOptions(
 ) -> impl IntoView {
     view! {
         <div>
-            <button on:click=move |_| set_editing_options.set(true) class="btn">Edit</button>
-
             {move || {
                 view! {
-                    <Show when=move || !slide_group.read().published>
-                        <SlideGroupPublishButton group_id=Signal::derive(move || {
-                            slide_group.read().id
-                        }) />
+                    <Show when=move || !slide_group.read().archive_date.is_some()>
+                        <button on:click=move |_| set_editing_options.set(true) class="btn">Edit</button>
+
+                        {move || {
+                            view! {
+                                <Show when=move || !slide_group.read().published>
+                                    <SlideGroupPublishButton group_id=Signal::derive(move || {
+                                        slide_group.read().id
+                                    }) />
+                                </Show>
+                            }
+                                .into_any()
+                        }}
                     </Show>
-                }
-                    .into_any()
+                }.into_any()
             }}
 
             {move || {
@@ -312,6 +328,45 @@ fn SlideGroupViewOptions(
 
             <SlideList slide_group=slide_group />
         </div>
+    }
+    .into_any()
+}
+
+#[component]
+pub fn DeleteDialog(#[prop()] slide_group_id: i32, open: RwSignal<bool>, set_editing_options: WriteSignal<bool>) -> impl IntoView {
+    let delete_action =
+        Action::new_local(move |_: &()| async move { api::archive_slide_group(slide_group_id).await });
+
+    let Some(page_context) = use_context::<SlideGroupOptionsContext>() else {
+        // if context is not available, then hide button
+        return ().into_any();
+    };
+
+    let response = move || delete_action.value().get().map(|r| r.map(|_| ()));
+    Effect::new(move || {
+        if response().map(|res| res.is_ok()).unwrap_or_default() {
+            page_context.refresh_group.dispatch(());
+            set_editing_options.set(false);
+            open.set(false);
+        }
+    });
+
+    view! {
+        <Dialog open=open>
+            <div class="card space-y-6 p-4">
+                <div class="w-2xs">
+                    <p>Are you sure you want to delete this slide group</p>
+                </div>
+                <div class="mt-6 flex gap-3">
+                    <button class="btn" on:click=move |_| {delete_action.dispatch(());}>
+                        Delete
+                    </button>
+                    <button class="btn" type="button" on:click=move |_| open.set(false)>
+                        "Cancel"
+                    </button>
+                </div>
+            </div>
+        </Dialog>
     }
     .into_any()
 }
