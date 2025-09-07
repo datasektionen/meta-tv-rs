@@ -31,11 +31,17 @@ pub struct OidcConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct PlsClaims {
-    #[serde(rename = "pls_meta-tv")]
-    pls_meta_tv: Vec<String>,
+struct HiveClaim {
+    id: String,
+    scope: Option<String>
 }
-impl AdditionalClaims for PlsClaims {}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct HiveClaims {
+    #[serde(rename = "permissions")]
+    permissions: Vec<HiveClaim>,
+}
+impl AdditionalClaims for HiveClaims {}
 
 #[derive(thiserror::Error, Debug)]
 pub enum OidcInitError<E: 'static + std::error::Error> {
@@ -74,7 +80,7 @@ pub struct OidcAuthenticationContext {
 type ReqwestError<'c> = <openidconnect::reqwest::Client as AsyncHttpClient<'c>>::Error;
 
 type PlsIdTokenFields = IdTokenFields<
-    PlsClaims,
+    HiveClaims,
     EmptyExtraTokenFields,
     CoreGenderClaim,
     CoreJweContentEncryptionAlgorithm,
@@ -82,7 +88,7 @@ type PlsIdTokenFields = IdTokenFields<
 >;
 
 type PlsClient = Client<
-    PlsClaims,
+    HiveClaims,
     CoreAuthDisplay,
     CoreGenderClaim,
     CoreJweContentEncryptionAlgorithm,
@@ -147,7 +153,7 @@ impl OidcClient {
                 Nonce::new_random,
             )
             .add_scope(Scope::new("profile".to_owned()))
-            .add_scope(Scope::new("pls_meta-tv".to_owned()))
+            .add_scope(Scope::new("permissions".to_owned()))
             .set_redirect_uri(Cow::Borrowed(&redirect_url))
             .url();
 
@@ -189,7 +195,7 @@ impl OidcClient {
             .claims(&id_token_verifier, &context.nonce)
             .map_err(OidcAuthenticationError::from)?;
 
-        let perms = &claims.additional_claims().pls_meta_tv;
+        let perms = &claims.additional_claims().permissions;
 
         // if !perms.iter().any(|p| p == "post") {
         //     return Err(AppError::LoginUnauthorized);
@@ -197,7 +203,7 @@ impl OidcClient {
 
         let session = Session {
             username: claims.subject().to_string(),
-            is_admin: perms.iter().any(|p| p == "admin"),
+            is_admin: perms.iter().any(|p| p.id == "admin"),
             expiration: claims.expiration(),
         };
 
