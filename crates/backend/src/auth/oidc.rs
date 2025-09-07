@@ -191,9 +191,9 @@ impl OidcClient {
 
         let perms = &claims.additional_claims().pls_meta_tv;
 
-        if !perms.iter().any(|p| p == "post") {
-            return Err(AppError::LoginUnauthorized);
-        }
+        // if !perms.iter().any(|p| p == "post") {
+        //     return Err(AppError::LoginUnauthorized);
+        // }
 
         let session = Session {
             username: claims.subject().to_string(),
