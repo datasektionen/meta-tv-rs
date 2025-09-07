@@ -4,7 +4,7 @@ use leptos::prelude::*;
 use leptos_icons::Icon;
 use web_sys::File;
 
-use crate::{api, components::dialog::Dialog, context::SlideGroupOptionsContext};
+use crate::{api, components::{dialog::Dialog, error::ErrorList}, context::SlideGroupOptionsContext};
 
 #[component]
 pub fn ContentItem(
@@ -159,6 +159,10 @@ pub fn UploadContentDialog(
                         </div>
                     </fieldset>
                 </form>
+
+                <ErrorBoundary fallback=|errors| {
+                    view! { <ErrorList errors=errors /> }.into_any()
+                }>{response}</ErrorBoundary>
             </div>
         </Dialog>
     }
