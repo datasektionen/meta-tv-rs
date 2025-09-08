@@ -1,7 +1,6 @@
 use common::dtos::{CreateSlideDto, MoveSlidesDto};
-use entity::slide;
 use rocket::{http::Status, serde::json::Json};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set, TransactionTrait};
+use sea_orm::{ActiveModelTrait, EntityTrait, Set, TransactionTrait};
 use sea_orm_rocket::Connection;
 
 use crate::{auth::Session, error::AppError, pool::Db};
@@ -72,10 +71,24 @@ pub async fn delete_slide(
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
-    entity::slide::Entity::delete_many()
-        .filter(entity::slide::Column::Id.eq(id))
-        .exec(&txn)
-        .await?;
+    let now = chrono::Utc::now().naive_utc();
+
+    let slide = entity::slide::Entity::find_by_id(id)
+        .one(&txn)
+        .await?
+        .ok_or(AppError::SlideNotFound)?;
+
+    if slide.archive_date.is_some() {
+        return Err(AppError::SlideArchived)
+    } 
+
+    entity::slide::ActiveModel {
+        id: Set(id),
+        archive_date: Set(Some(now)),
+        ..Default::default()
+    }
+    .update(&txn)
+    .await?;
 
     txn.commit().await?;
 
