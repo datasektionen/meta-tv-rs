@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[component]
-pub fn SlideList(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
+pub fn SlideList(slide_group: Signal<SlideGroupDto>, editeble: bool) -> impl IntoView {
     let group_id = move || slide_group.read().id;
     let max_position = move || {
         slide_group
@@ -32,7 +32,7 @@ pub fn SlideList(slide_group: Signal<SlideGroupDto>) -> impl IntoView {
                 }
                     .into_any()
             }
-            children=move |slide| { view! { <SlideRow slide=slide slide_group=slide_group /> }.into_any() }
+            children=move |slide| { view! { <SlideRow slide=slide slide_group=slide_group editeble=editeble /> }.into_any() }
         />
         {move || {
             view! {
@@ -87,7 +87,7 @@ fn AddSlideButton(#[prop(into)] group_id: Signal<i32>, max_position: Signal<i32>
 }
 
 #[component]
-fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, slide_group: Signal<SlideGroupDto>) -> impl IntoView {
+fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, slide_group: Signal<SlideGroupDto>, editeble: bool) -> impl IntoView {
     let screens = use_context::<ScreenContext>()
         .expect("expected screen context")
         .screens;
@@ -100,7 +100,7 @@ fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, slide_group: Signal<SlideGrou
             open=is_delete_dialog_open
         />
         <div class="my-6">
-            <div class="flex gap-4">
+            <div class="flex gap-4 flex-col md:flex-row justify-center md:justify-start items-center md:items-start">
                 <For
                     each=move || screens.get()
                     key=|screen| screen.id
@@ -124,10 +124,12 @@ fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, slide_group: Signal<SlideGrou
             </div>
             {move || {
                 view! {
-                    <Show when=move || !slide_group.get().archive_date.is_some()>
-                        <button class="btn my-3" on:click=move |_| is_delete_dialog_open.set(true)>
-                            Delete
-                        </button>
+                    <Show when=move || !slide_group.get().archive_date.is_some() && editeble>
+                        <div class="flex flex-row justify-center md:justify-start">
+                            <button class="btn my-3" on:click=move |_| is_delete_dialog_open.set(true)>
+                                Delete
+                            </button>
+                        </div>
                     </Show>
                 }.into_any()
             }}

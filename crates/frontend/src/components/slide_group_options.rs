@@ -326,7 +326,7 @@ fn SlideGroupViewOptions(
                     .into_any()
             }}
 
-            <SlideList slide_group=slide_group />
+            <SlideList slide_group=slide_group editeble=true />
         </div>
     }
     .into_any()
