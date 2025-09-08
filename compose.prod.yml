@@ -11,8 +11,7 @@ services:
       - ROCKET_SECRET_KEY=2hMUcPB1UjTd2W8aZDBxoUC27R0z9c56992m3x2MTE4D
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
-      - ROCKET_LIMITS_FILE=50MiB
-      - ROCKET_LIMITS_DATA_FORM=51MiB
+      - ROCKET_LIMITS={file="50MiB", data-form="51MiB"}
       - FEED_ENTRY_DURATION=10_0000
     volumes:
       - upload:/srv/uploads

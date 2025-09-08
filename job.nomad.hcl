@@ -40,8 +40,7 @@ ROCKET_SECRET_KEY={{ .app_secret }}
 ROCKET_PORT={{ env "NOMAD_PORT_http" }}
 ROCKET_ADDRESS=0.0.0.0
 ROCKET_UPLOAD_DIR="/srv/uploads"
-ROCKET_LIMITS_FILE=50MiB
-ROCKET_LIMITS_DATA_FORM=51MiB
+ROCKET_LIMITS={file="50MiB", data-form="51MiB"}
 FEED_ENTRY_DURATION=10_0000
 ENV
         destination = "local/.env"
