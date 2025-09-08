@@ -49,7 +49,7 @@ pub async fn get_slide_group(
         .await?
         .ok_or(AppError::SlideGroupNotFound)?;
 
-    Ok(Json(get_slide_group_dto(group, false, &txn).await?))
+    Ok(Json(get_slide_group_dto(group, true, &txn).await?))
 }
 
 async fn get_slide_group_dto(

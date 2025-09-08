@@ -33,6 +33,7 @@ pub fn ContentItem(
                                     <img
                                         class="object-contain h-full w-full"
                                         src=format!("/uploads/{}", content.file_path)
+                                        on:click=move |_| is_upload_dialog_open.set(true)
                                     />
                                 }
                                     .into_any()
@@ -45,6 +46,7 @@ pub fn ContentItem(
                                         preload="metadata"
                                         class="object-contain h-full w-full"
                                         src=format!("/uploads/{}", content.file_path)
+                                        on:click=move |_| is_upload_dialog_open.set(true)
                                     />
                                 }
                                     .into_any()
@@ -55,6 +57,7 @@ pub fn ContentItem(
                                         sandbox=""
                                         class="object-contain h-full w-full"
                                         src=format!("/uploads/{}", content.file_path)
+                                        on:click=move |_| is_upload_dialog_open.set(true)
                                     />
                                 }
                                     .into_any()

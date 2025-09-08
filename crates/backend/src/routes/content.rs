@@ -48,6 +48,7 @@ pub async fn create_content(
     entity::content::Entity::update_many()
         .filter(entity::content::Column::Slide.eq(upload.data.slide))
         .filter(entity::content::Column::Screen.eq(upload.data.screen))
+        .filter(entity::content::Column::ArchiveDate.is_null())
         .set(entity::content::ActiveModel {
             archive_date: Set(Some(Utc::now().naive_utc())),
             ..Default::default()
