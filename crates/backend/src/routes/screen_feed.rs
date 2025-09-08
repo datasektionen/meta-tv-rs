@@ -1,3 +1,5 @@
+use std::env;
+
 use common::dtos::{AppErrorDto, FeedEntryDto};
 use entity::{sea_orm::entity::prelude::Expr, sea_orm_active_enums::ContentType};
 use rocket::{
@@ -16,7 +18,7 @@ use sea_orm_rocket::Connection;
 
 use crate::{error::AppError, pool::Db};
 
-const FEED_ENTRY_DURATION: i32 = 30_000;
+const FEED_ENTRY_DURATION: i32 = 10_000;
 
 #[get("/feed/<screen>")]
 pub async fn get_screen_feed(
@@ -24,6 +26,11 @@ pub async fn get_screen_feed(
     conn: Connection<'_, Db>,
     mut shutdown: Shutdown,
 ) -> EventStream![Event + '_] {
+    let feed_entry_duration = env::var("FEED_ENTRY_DURATION")
+        .unwrap_or(FEED_ENTRY_DURATION.to_string())
+        .parse::<i32>()
+        .unwrap_or(FEED_ENTRY_DURATION);
+
     EventStream! {
         let db = conn.into_inner();
         // TODO use queue/notify instead of interval
@@ -31,7 +38,7 @@ pub async fn get_screen_feed(
         loop {
             select! {
                 _ = interval.tick() => {
-                    match compute_feed(screen, db).await {
+                    match compute_feed(screen, db, feed_entry_duration).await {
                         Ok(data) => yield Event::json(&data),
                         Err(err) => {
                             let status = err.status();
@@ -71,7 +78,7 @@ struct PartialEntry {
 ///
 /// Assumptions:
 /// - There is at most one non-archived content per slide
-async fn compute_feed(screen: i32, db: &DatabaseConnection) -> Result<Vec<FeedEntryDto>, AppError> {
+async fn compute_feed(screen: i32, db: &DatabaseConnection, feed_entry_duration: i32) -> Result<Vec<FeedEntryDto>, AppError> {
     let now = chrono::Utc::now();
 
     let entries: Vec<PartialEntry> = entity::slide::Entity::find()
@@ -141,7 +148,7 @@ async fn compute_feed(screen: i32, db: &DatabaseConnection) -> Result<Vec<FeedEn
                 .map(|ct| ct.into())
                 .unwrap_or(common::dtos::ContentType::Image),
             file_path: entry.file_path.unwrap_or_default(),
-            duration: FEED_ENTRY_DURATION,
+            duration: feed_entry_duration,
         })
         .collect())
 }
@@ -487,7 +494,7 @@ mod tests {
                 .expect("failed to insert content");
         }
 
-        let feed = compute_feed(1, &db).await.expect("failed to compute feed");
+        let feed = compute_feed(1, &db, FEED_ENTRY_DURATION).await.expect("failed to compute feed");
         assert_eq!(
             feed,
             [
@@ -519,7 +526,7 @@ mod tests {
             ]
         );
 
-        let feed = compute_feed(2, &db).await.expect("failed to compute feed");
+        let feed = compute_feed(2, &db, FEED_ENTRY_DURATION).await.expect("failed to compute feed");
         assert_eq!(
             feed,
             [
