@@ -12,20 +12,23 @@ RUN tailwindcss
 
 RUN rustup target add wasm32-unknown-unknown
 
-COPY crates/entity/ /build/crates/entity/
-WORKDIR /build/crates/entity
+COPY crates/entity/ ../entity/
+COPY crates/common/ ../common/
 
-RUN cargo build -r
-
-COPY crates/common/ /build/crates/common/
-WORKDIR /build/crates/common
-
-RUN cargo build -r
-
-COPY crates/frontend/ /build/crates/frontend/
-WORKDIR /build/crates/frontend
+COPY crates/frontend/Cargo.toml .
+COPY crates/frontend/Trunk.toml Trunk.toml
+RUN mkdir src
+COPY crates/frontend/dev/main.rs src/main.rs
+COPY crates/frontend/dev/index.html index.html
 
 RUN trunk build
+
+COPY crates/frontend/public/ public/
+COPY crates/frontend/src/ src/
+COPY crates/frontend/index.html index.html
+
+RUN trunk build
+
 
 ######################## backend #########################################
 
@@ -34,20 +37,16 @@ WORKDIR /build
 
 RUN apk update && apk upgrade && apk add make alpine-sdk libffi-dev
 
-COPY crates/migration/ /build/crates/migration/
-WORKDIR /build/crates/migration
+COPY crates/migration/ ../migration/
+COPY crates/entity/ ../entity/
+COPY crates/common/ ../common/
+COPY crates/backend/Cargo.toml .
+RUN mkdir src
+RUN echo "fn main() {}" > src/main.rs
+
 RUN cargo build -r
 
-COPY crates/entity/ /build/crates/entity/
-WORKDIR /build/crates/entity
-RUN cargo build -r
-
-COPY crates/common/ /build/crates/common/
-WORKDIR /build/crates/entity
-RUN cargo build -r
-
-COPY crates/backend/ /build/crates/backend/
-WORKDIR /build/crates/backend
+COPY crates/backend/ .
 
 RUN cargo build -r
 
@@ -55,8 +54,8 @@ FROM alpine:latest
 
 WORKDIR /srv
 
-COPY --from=frontend-build /build/crates/frontend/dist/ /www/static/
-COPY --from=build /build/crates/backend/target/release/meta-tv-rs meta-tv-rs
+COPY --from=frontend-build /build/dist/ /www/static/
+COPY --from=build /build/target/release/meta-tv-rs meta-tv-rs
 
 RUN mkdir /srv/uploads
 
