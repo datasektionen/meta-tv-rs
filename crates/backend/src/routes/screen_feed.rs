@@ -31,8 +31,6 @@ pub async fn get_screen_feed(
         .parse::<i32>()
         .unwrap_or(FEED_ENTRY_DURATION);
 
-    error!("{}", feed_entry_duration);
-
     EventStream! {
         let db = conn.into_inner();
         // TODO use queue/notify instead of interval
