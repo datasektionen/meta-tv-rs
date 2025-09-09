@@ -12,7 +12,7 @@ services:
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
       - ROCKET_LIMITS={file="50MiB", data-form="51MiB"}
-      - FEED_ENTRY_DURATION=10_0000
+      - FEED_ENTRY_DURATION=30000
     volumes:
       - upload:/srv/uploads
     depends_on:
