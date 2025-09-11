@@ -238,7 +238,7 @@ fn SlideGroupEditOptions(
                             <button class="btn" type="button" on:click=move |_| set_editing_options.set(false)>
                                 Cancel
                             </button>
-                            <button class="btn" type="button" on:click=move |_| is_delete_dialog_open.set(true)>
+                            <button class="btn btn-error" type="button" on:click=move |_| is_delete_dialog_open.set(true)>
                                 Delete
                             </button>
                         </div>
@@ -358,7 +358,7 @@ pub fn DeleteDialog(#[prop()] slide_group_id: i32, open: RwSignal<bool>, set_edi
                     <p>Are you sure you want to delete this slide group</p>
                 </div>
                 <div class="mt-6 flex gap-3">
-                    <button class="btn" on:click=move |_| {delete_action.dispatch(());}>
+                    <button class="btn btn-error" on:click=move |_| {delete_action.dispatch(());}>
                         Delete
                     </button>
                     <button class="btn" type="button" on:click=move |_| open.set(false)>
