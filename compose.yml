@@ -91,21 +91,12 @@ configs:
               content: turetek@gmail.com
 
       hive:
-        tokens:
-          - secret: aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa
-            permissions:
-              - id: admin
-                scope: null
         groups:
           - name: Systemansvarig
             id: d-sys
             domain: example.com
             members:
               - turetek
-            tags:
-              - id: author-pseudonym
-                content: D-Sys
-              - id: mandate
             permissions:
               - id: admin
                 scope: null
