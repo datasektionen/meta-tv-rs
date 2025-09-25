@@ -51,6 +51,8 @@ RUN cargo build
 
 FROM alpine:latest
 
+RUN apk add nginx
+
 WORKDIR /srv
 
 COPY --from=frontend /build/dist/ /www/static/
@@ -58,4 +60,8 @@ COPY --from=backend /build/target/debug/meta-tv-rs meta-tv-rs
 
 RUN mkdir /srv/uploads
 
-CMD ["./meta-tv-rs"]
+RUN echo "nginx &" >> run.sh
+RUN echo "./meta-tv-rs" >> run.sh
+RUN chmod +x run.sh
+
+ENTRYPOINT ./run.sh

@@ -6,7 +6,7 @@ services:
       - 8000:8000
     environment:
       - ROCKET_DATABASES={sea_orm={url="postgresql://postgres:postgres@db/metatv"}}
-      - ROCKET_OIDC={issuer_url="https://sso.datasektionen.se/op",client_id="${CLIENT_ID}",client_secret="${CLIENT_SECRET}",redirect_url="http://localhost:8000/auth/oidc-callback"}
+      - ROCKET_OIDC={issuer_url="http://localhost:7003",client_id="client-id",client_secret="client-secret",redirect_url="http://localhost:8000/auth/oidc-callback"}
       - ROCKET_UPLOAD_DIR="./uploads"
       - ROCKET_SECRET_KEY=2hMUcPB1UjTd2W8aZDBxoUC27R0z9c56992m3x2MTE4D
       - ROCKET_ADDRESS=0.0.0.0
@@ -15,6 +15,9 @@ services:
       - FEED_ENTRY_DURATION=30000
     volumes:
       - upload:/srv/uploads
+    configs:
+    - source: nginx.conf
+      target: /etc/nginx/nginx.conf
     depends_on:
       db:
         condition: service_healthy
@@ -40,6 +43,77 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+  nyckeln:
+    image: ghcr.io/datasektionen/nyckeln-under-dorrmattan
+    configs:
+      - source: nyckeln.yaml
+        target: /config.yaml
+    ports:
+      - 7001:7001
+      - 7002:7002
+      - 7003:7003
+      - 7004:7004
 
 volumes:
   upload:
+
+configs:
+  nginx.conf:
+    content: |
+      events {}
+
+      http {
+        server {
+          listen 7003;
+
+          location / {
+            proxy_pass http://nyckeln:7003;
+          }
+        }
+      }
+
+  nyckeln.yaml:
+    content: |
+      clients:
+        - id: client-id
+          secret: client-secret
+          redirect_uris:
+            [
+              "http://localhost:8000/auth/oidc-callback"
+            ]
+
+      users:
+        - ug_kth_id: some-id
+          kth_id: turetek
+          email: turetek@kth.se
+          first_name: Ture
+          family_name: Teknolog
+          pls_permissions:
+            sso:
+              - admin
+            calypso:
+              - drek
+              - dfunk
+          hive_tags:
+            - id: personal_email
+              content: turetek@gmail.com
+
+      hive:
+        tokens:
+          - secret: aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa
+            permissions:
+              - id: admin
+                scope: null
+        groups:
+          - name: Systemansvarig
+            id: d-sys
+            domain: example.com
+            members:
+              - turetek
+            tags:
+              - id: author-pseudonym
+                content: D-Sys
+              - id: mandate
+            permissions:
+              - id: admin
+                scope: null
