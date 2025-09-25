@@ -79,8 +79,8 @@ pub async fn delete_slide(
         .ok_or(AppError::SlideNotFound)?;
 
     if slide.archive_date.is_some() {
-        return Err(AppError::SlideArchived)
-    } 
+        return Err(AppError::SlideArchived);
+    }
 
     entity::slide::ActiveModel {
         id: Set(id),
