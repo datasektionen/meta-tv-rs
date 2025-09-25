@@ -78,9 +78,7 @@ configs:
         - id: client-id
           secret: client-secret
           redirect_uris:
-            [
-              "http://localhost:8000/auth/oidc-callback"
-            ]
+            - "http://localhost:8000/auth/oidc-callback"
 
       users:
         - ug_kth_id: some-id
@@ -88,12 +86,6 @@ configs:
           email: turetek@kth.se
           first_name: Ture
           family_name: Teknolog
-          pls_permissions:
-            sso:
-              - admin
-            calypso:
-              - drek
-              - dfunk
           hive_tags:
             - id: personal_email
               content: turetek@gmail.com
