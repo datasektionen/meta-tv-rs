@@ -44,16 +44,16 @@ pub async fn create_screen(
 
 #[cfg(test)]
 mod tests {
-    use common::dtos::{CreateScreenDto, ScreenDto};
+    use common::dtos::ScreenDto;
     use rocket::http::Status;
 
-    use crate::assert_created;
     use crate::test_utils::TestClient;
 
     #[test]
     fn create_and_list_screens() {
         let mut client = TestClient::new();
         client.login_as("johndoe", false);
+        #[allow(unused_macros)]
         macro_rules! create_screen {
             ($name: expr, $position: expr, $id: expr) => {
                 let response = client

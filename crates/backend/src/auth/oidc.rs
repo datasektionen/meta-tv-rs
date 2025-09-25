@@ -33,7 +33,7 @@ pub struct OidcConfig {
 #[derive(Debug, Deserialize, Serialize)]
 struct HiveClaim {
     id: String,
-    scope: Option<String>
+    scope: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

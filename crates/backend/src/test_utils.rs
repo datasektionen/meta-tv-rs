@@ -1,7 +1,7 @@
 use core::fmt;
 
 use chrono::{Days, Utc};
-use common::dtos::{CreateScreenDto, CreateSlideDto, CreateSlideGroupDto};
+use common::dtos::{CreateSlideDto, CreateSlideGroupDto};
 use rocket::{
     http::{uri::Origin, Cookie},
     local::blocking::{Client, LocalRequest},

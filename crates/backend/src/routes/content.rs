@@ -304,7 +304,6 @@ mod tests {
         let mut client = TestClient::new();
         client.login_as("johndoe", false);
 
-
         let data = CreateContentDto {
             slide: 1,
             screen: 1,

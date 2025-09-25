@@ -78,7 +78,11 @@ struct PartialEntry {
 ///
 /// Assumptions:
 /// - There is at most one non-archived content per slide
-async fn compute_feed(screen: i32, db: &DatabaseConnection, feed_entry_duration: i32) -> Result<Vec<FeedEntryDto>, AppError> {
+async fn compute_feed(
+    screen: i32,
+    db: &DatabaseConnection,
+    feed_entry_duration: i32,
+) -> Result<Vec<FeedEntryDto>, AppError> {
     let now = chrono::Utc::now();
 
     let entries: Vec<PartialEntry> = entity::slide::Entity::find()
@@ -494,7 +498,9 @@ mod tests {
                 .expect("failed to insert content");
         }
 
-        let feed = compute_feed(1, &db, FEED_ENTRY_DURATION).await.expect("failed to compute feed");
+        let feed = compute_feed(1, &db, FEED_ENTRY_DURATION)
+            .await
+            .expect("failed to compute feed");
         assert_eq!(
             feed,
             [
@@ -526,7 +532,9 @@ mod tests {
             ]
         );
 
-        let feed = compute_feed(2, &db, FEED_ENTRY_DURATION).await.expect("failed to compute feed");
+        let feed = compute_feed(2, &db, FEED_ENTRY_DURATION)
+            .await
+            .expect("failed to compute feed");
         assert_eq!(
             feed,
             [
