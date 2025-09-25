@@ -32,6 +32,7 @@ pub async fn login(
     Ok(Redirect::to(url))
 }
 
+#[allow(dead_code)]
 #[rocket::get("/login")]
 pub async fn login_authenticated(_session: Session) -> Redirect {
     Redirect::to("/")
