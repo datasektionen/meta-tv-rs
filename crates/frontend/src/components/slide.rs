@@ -163,7 +163,7 @@ pub fn DeleteDialog(#[prop()] slide_id: i32, open: RwSignal<bool>) -> impl IntoV
         <Dialog open=open>
             <div class="card space-y-6 p-4">
                 <div class="w-2xs">
-                    <p>Are you sure you want to delete these slides</p>
+                    <p>Are you sure you want to delete this slide</p>
                 </div>
                 <div class="mt-6 flex gap-3">
                     <button class="btn btn-error" on:click=move |_| {delete_action.dispatch(());}>
