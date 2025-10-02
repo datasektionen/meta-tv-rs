@@ -133,7 +133,7 @@ fn SlideGroupEditOptions(
                                     </div>
                                 </div>
                                 <div class="text-sm/6">
-                                    <label for="priority" class="label font-medium">Pinn</label>
+                                    <label for="priority" class="label font-medium">Pin</label>
                                     <p class="text-gray-500">Make this slide group the only on shown on the tv.</p>
                                 </div>
                             </div>
