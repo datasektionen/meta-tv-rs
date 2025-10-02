@@ -4,7 +4,11 @@ use leptos::prelude::*;
 use leptos_icons::Icon;
 use web_sys::File;
 
-use crate::{api, components::{dialog::Dialog, error::ErrorList}, context::SlideGroupOptionsContext};
+use crate::{
+    api,
+    components::{dialog::Dialog, error::ErrorList},
+    context::SlideGroupOptionsContext,
+};
 
 #[component]
 pub fn ContentItem(

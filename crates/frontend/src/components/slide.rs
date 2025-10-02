@@ -87,7 +87,11 @@ fn AddSlideButton(#[prop(into)] group_id: Signal<i32>, max_position: Signal<i32>
 }
 
 #[component]
-fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, slide_group: Signal<SlideGroupDto>, editeble: bool) -> impl IntoView {
+fn SlideRow(
+    #[prop(into)] slide: Signal<SlideDto>,
+    slide_group: Signal<SlideGroupDto>,
+    editeble: bool,
+) -> impl IntoView {
     let screens = use_context::<ScreenContext>()
         .expect("expected screen context")
         .screens;
@@ -126,8 +130,8 @@ fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, slide_group: Signal<SlideGrou
                 view! {
                     <Show when=move || !slide_group.get().archive_date.is_some() && editeble>
                         <div class="flex flex-row justify-center md:justify-start">
-                            <button class="btn my-3" on:click=move |_| is_delete_dialog_open.set(true)>
-                                Delete
+                            <button class="btn btn-soft btn-choose btn-error my-3" on:click=move |_| is_delete_dialog_open.set(true)>
+                                Delete Slide
                             </button>
                         </div>
                     </Show>
@@ -162,7 +166,7 @@ pub fn DeleteDialog(#[prop()] slide_id: i32, open: RwSignal<bool>) -> impl IntoV
                     <p>Are you sure you want to delete these slides</p>
                 </div>
                 <div class="mt-6 flex gap-3">
-                    <button class="btn" on:click=move |_| {delete_action.dispatch(());}>
+                    <button class="btn btn-error" on:click=move |_| {delete_action.dispatch(());}>
                         Delete
                     </button>
                     <button class="btn" type="button" on:click=move |_| open.set(false)>

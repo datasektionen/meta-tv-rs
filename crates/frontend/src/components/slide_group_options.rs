@@ -1,12 +1,12 @@
 use chrono::Utc;
 use common::dtos::{CreateSlideGroupDto, SlideGroupDto};
 use icondata as i;
-use leptos::prelude::*;
+use leptos::{leptos_dom::logging::console_log, prelude::*};
 use leptos_icons::Icon;
 
 use crate::{
     api,
-    components::{dialog::Dialog, alert::Alert, error::ErrorList, slide::SlideList},
+    components::{alert::Alert, dialog::Dialog, error::ErrorList, slide::SlideList},
     context::SlideGroupOptionsContext,
     utils::{
         bool::fmt_if,
@@ -238,8 +238,8 @@ fn SlideGroupEditOptions(
                             <button class="btn" type="button" on:click=move |_| set_editing_options.set(false)>
                                 Cancel
                             </button>
-                            <button class="btn" type="button" on:click=move |_| is_delete_dialog_open.set(true)>
-                                Delete
+                            <button class="btn btn-soft btn-error" type="button" on:click=move |_| is_delete_dialog_open.set(true)>
+                                Delete Group
                             </button>
                         </div>
                     </fieldset>
@@ -255,10 +255,17 @@ fn SlideGroupViewOptions(
     slide_group: Signal<SlideGroupDto>,
     set_editing_options: WriteSignal<bool>,
 ) -> impl IntoView {
+    let is_delete_dialog_open = RwSignal::new(false);
+
     view! {
         <div>
             {move || {
                 view! {
+                    <DeleteDialog
+                        slide_group_id=slide_group.get().id
+                        open=is_delete_dialog_open
+                        set_editing_options=set_editing_options
+                    />
                     <Show when=move || !slide_group.read().archive_date.is_some()>
                         <button on:click=move |_| set_editing_options.set(true) class="btn">Edit</button>
 
@@ -272,6 +279,8 @@ fn SlideGroupViewOptions(
                             }
                                 .into_any()
                         }}
+
+                        <button on:click=move |_| is_delete_dialog_open.set(true) class="btn btn-soft btn-error">Delete Group</button>
                     </Show>
                 }.into_any()
             }}
@@ -333,9 +342,15 @@ fn SlideGroupViewOptions(
 }
 
 #[component]
-pub fn DeleteDialog(#[prop()] slide_group_id: i32, open: RwSignal<bool>, set_editing_options: WriteSignal<bool>) -> impl IntoView {
+pub fn DeleteDialog(
+    #[prop()] slide_group_id: i32,
+    open: RwSignal<bool>,
+    set_editing_options: WriteSignal<bool>,
+) -> impl IntoView {
     let delete_action =
-        Action::new_local(move |_: &()| async move { api::archive_slide_group(slide_group_id).await });
+        Action::new_local(
+            move |_: &()| async move { api::archive_slide_group(slide_group_id).await },
+        );
 
     let Some(page_context) = use_context::<SlideGroupOptionsContext>() else {
         // if context is not available, then hide button
@@ -358,7 +373,7 @@ pub fn DeleteDialog(#[prop()] slide_group_id: i32, open: RwSignal<bool>, set_edi
                     <p>Are you sure you want to delete this slide group</p>
                 </div>
                 <div class="mt-6 flex gap-3">
-                    <button class="btn" on:click=move |_| {delete_action.dispatch(());}>
+                    <button class="btn btn-error" on:click=move |_| {delete_action.dispatch(());}>
                         Delete
                     </button>
                     <button class="btn" type="button" on:click=move |_| open.set(false)>
