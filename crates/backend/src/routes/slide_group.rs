@@ -20,7 +20,7 @@ pub async fn list_slide_groups(
     let txn = db.begin().await?;
 
     let groups = entity::slide_group::Entity::find()
-        .order_by_asc(entity::slide_group::Column::Id)
+        .order_by_desc(entity::slide_group::Column::Id)
         .filter(entity::slide_group::Column::ArchiveDate.is_null())
         .all(&txn)
         .await?;
