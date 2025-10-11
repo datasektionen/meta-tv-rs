@@ -123,6 +123,7 @@ fn SlideGroupEditOptions(
                                         <input
                                             type="checkbox"
                                             name="priority"
+                                            id="priority"
                                             aria-describedby="marked-priority"
                                             class="col-start-1 row-start-1 rounded-sm border border-gray-300 checked:border-indigo-600 checked:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto" 
                                             prop:checked=move || { priority.get() > 0 }
@@ -145,6 +146,7 @@ fn SlideGroupEditOptions(
                                         <input
                                             type="checkbox"
                                             name="hidden"
+                                            id="hidden"
                                             aria-describedby="mark-hidden"
                                             class="col-start-1 row-start-1 rounded-sm border border-gray-300 checked:border-indigo-600 checked:bg-indigo-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:border-gray-300 disabled:bg-gray-100 disabled:checked:bg-gray-100 forced-colors:appearance-auto" 
                                             bind:checked=hidden
