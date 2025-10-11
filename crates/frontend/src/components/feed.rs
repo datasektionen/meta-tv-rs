@@ -73,7 +73,7 @@ pub fn ScreenFeedSlideshow(feed: Signal<Vec<FeedEntryDto>>) -> impl IntoView {
                         ContentType::Html => {
                             view! {
                                 <iframe
-                                    sandbox="allow-scripts"
+                                    sandbox="allow-scripts allow-same-origin"
                                     class="object-contain h-screen w-screen"
                                     src=format!("/uploads/{}", entry.file_path)
                                 />
