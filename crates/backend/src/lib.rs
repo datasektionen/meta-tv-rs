@@ -16,6 +16,7 @@ use sea_orm_rocket::Database;
 extern crate rocket;
 
 mod auth;
+mod cached_file;
 mod error;
 mod files;
 mod guards;
