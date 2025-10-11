@@ -1,16 +1,17 @@
 use std::path::{Path, PathBuf};
 
+use entity_tag::EntityTag;
 use rocket::{
     data::Capped,
     fairing::{self, Fairing, Info, Kind},
-    fs::{FileServer, TempFile},
+    fs::TempFile,
     tokio::io::AsyncReadExt,
-    Build, Rocket,
+    Build, Rocket, State,
 };
 use sha2::{Digest, Sha256};
 use std::fmt::Write;
 
-use crate::error::AppError;
+use crate::{cached_file::CachedFile, error::AppError};
 
 pub struct FilesInitializer;
 
@@ -55,9 +56,8 @@ impl Fairing for FilesInitializer {
 
         info!("upload directory is set to {:?}", upload_dir);
 
-        let file_server = FileServer::from(&upload_dir);
         let files = Files { upload_dir };
-        Ok(rocket.manage(files).mount("/uploads", file_server))
+        Ok(rocket.manage(files).mount("/uploads", routes![uploads]))
     }
 
     /// Handle using a temp dir for tests
@@ -65,9 +65,8 @@ impl Fairing for FilesInitializer {
     async fn on_ignite(&self, rocket: Rocket<Build>) -> fairing::Result {
         let dir = tempfile::tempdir().unwrap();
 
-        let file_server = FileServer::from(dir.path());
         let files = Files { upload_dir: dir };
-        Ok(rocket.manage(files).mount("/uploads", file_server))
+        Ok(rocket.manage(files).mount("/uploads", routes![uploads]))
     }
 }
 
@@ -126,4 +125,15 @@ impl Files {
     fn get_path(&self) -> &Path {
         self.upload_dir.path()
     }
+}
+
+#[get("/<path..>")]
+async fn uploads(path: PathBuf, files_config: &State<Files>) -> Option<CachedFile<'static>> {
+    let path = files_config.get_path().join(&path);
+    // Setting etag to filename as it is set to a hash of the contents on file upload.
+    let etag = EntityTag::with_string(false, path.file_stem()?.to_str()?.to_owned()).ok()?;
+
+    CachedFile::open(path, etag, chrono::Duration::weeks(1))
+        .await
+        .ok()
 }
