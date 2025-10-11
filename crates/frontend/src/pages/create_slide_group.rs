@@ -16,7 +16,7 @@ pub fn CreateSlideGroup() -> impl IntoView {
                 priority: 0,
                 hidden: false,
                 start_date: chrono::Utc::now(),
-                end_date: None,
+                end_date: Some(chrono::Utc::now() + chrono::Duration::days(1)),
             })
             .await
         }
