@@ -8,6 +8,7 @@ default-run = "meta-tv-rs"
 chrono = "0.4.40"
 common = { path = "../common", features = ["entity"] }
 entity = { path = "../entity" }
+entity-tag = "0.1.8"
 migration = { path = "../migration" }
 openidconnect = { version = "4.0.0", features = ["timing-resistant-secret-traits"] }
 rocket = { version = "0.5.1", features = ["json", "secrets"] }
