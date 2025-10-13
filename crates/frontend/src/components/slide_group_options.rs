@@ -181,7 +181,7 @@ fn SlideGroupEditOptions(
                                                     }
                                                 }
                                             />
-                                            <p class="mt-3 text-sm/6 text-gray-600">Dates are in your local timezone</p>
+                                            <p class="mt-3 text-sm/6 text-gray-600">Dates are in Swedish time</p>
                                         </div>
                                     </div>
                                 </div>
@@ -207,7 +207,7 @@ fn SlideGroupEditOptions(
                                                                 }
                                                             }
                                                         />
-                                                        <p class="mt-3 text-sm/6 text-gray-600">Dates are in your local timezone</p>
+                                                        <p class="mt-3 text-sm/6 text-gray-600">Dates are in Swedish time</p>
                                                     </div>
                                                 </div>
                                             </div>

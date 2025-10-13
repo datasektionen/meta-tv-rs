@@ -10,13 +10,20 @@ pub fn CreateSlideGroup() -> impl IntoView {
 
     let submit_action = Action::new_local(|title: &String| {
         let title = title.clone();
+        let now = chrono::Utc::now();
         async move {
             api::create_slide_group(&CreateSlideGroupDto {
                 title,
                 priority: 0,
                 hidden: false,
-                start_date: chrono::Utc::now(),
-                end_date: None,
+                start_date: now.clone(),
+                end_date: Some(
+                    now.clone()
+                        .checked_add_months(chrono::Months::new(1))
+                        // Adding one month may result in an invalid date time (e.g. due to daylight
+                        // savings). Fallback to adding 30 days then to avoid the ambiguity.
+                        .unwrap_or_else(|| now + chrono::Duration::days(30)),
+                ),
             })
             .await
         }
