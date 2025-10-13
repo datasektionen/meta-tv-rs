@@ -58,7 +58,7 @@ pub fn ContentItem(
                             ContentType::Html => {
                                 view! {
                                     <iframe
-                                        sandbox=""
+                                        sandbox="allow-scripts allow-same-origin"
                                         class="object-contain h-full w-full"
                                         src=format!("/uploads/{}", content.file_path)
                                         on:click=move |_| is_upload_dialog_open.set(true)
