@@ -99,7 +99,7 @@ pub(crate) fn rocket() -> Rocket<Build> {
         .attach(AdHoc::try_on_ignite("Migrations", run_migrations))
         .attach(AdHoc::try_on_ignite("Screens", setup_screens))
         .attach(AdHoc::on_liftoff("Scheduled tasks", |rocket| {
-            Box::pin(async move { scheduler::start(rocket) })
+            Box::pin(scheduler::start(rocket))
         }))
         .mount("/", FileServer::from("/www/static/").rank(11))
         .mount("/", routes![serve_file])
