@@ -1,5 +1,6 @@
 //! Defines jobs which are ran at set intervals in the background.
 
+use chrono::Utc;
 use chrono_tz::Europe::Stockholm;
 use clokwerk::{AsyncScheduler, Job, TimeUnits};
 use entity::slide_group;
@@ -36,6 +37,28 @@ pub async fn unpin_slide_groups(db: DatabaseConnection) -> Result<(), DbErr> {
     Ok(())
 }
 
+/// Archive all slide groups with an end date which expired at least a day ago.
+pub async fn archive_expired_slide_groups(db: DatabaseConnection) -> Result<(), DbErr> {
+    let now = Utc::now().naive_utc();
+    let cutoff_date = now - chrono::Duration::days(1);
+
+    let result = slide_group::Entity::update_many()
+        .set(slide_group::ActiveModel {
+            archive_date: ActiveValue::Set(Some(now)),
+            ..Default::default()
+        })
+        .filter(slide_group::Column::ArchiveDate.is_null())
+        .filter(slide_group::Column::EndDate.lte(cutoff_date))
+        .exec(&db)
+        .await?;
+
+    if result.rows_affected > 0 {
+        println!("Archived {} expired slide groups", result.rows_affected);
+    }
+
+    Ok(())
+}
+
 pub async fn start(rocket: &Rocket<Orbit>) {
     let mut scheduler = AsyncScheduler::with_tz(Stockholm);
 
@@ -49,6 +72,11 @@ pub async fn start(rocket: &Rocket<Orbit>) {
         .every(1.days())
         .at("05:00")
         .run(move || log_job_error(unpin_slide_groups(cloned_db.clone())));
+
+    let cloned_db = db.clone();
+    scheduler
+        .every(1.minutes())
+        .run(move || log_job_error(archive_expired_slide_groups(cloned_db.clone())));
 
     tokio::spawn(async move {
         loop {
