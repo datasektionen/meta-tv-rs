@@ -76,7 +76,7 @@ pub fn SlideGroupOverview(#[prop(into)] slide_group: Signal<SlideGroupDto>) -> i
                     </div>
                 }
                     .into_any()
-            }} <SlideList slide_group=slide_group editeble=false/>
+            }} <SlideList slide_group=slide_group editable=false/>
         </div>
     }
     .into_any()

@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[component]
-pub fn SlideList(slide_group: Signal<SlideGroupDto>, editeble: bool) -> impl IntoView {
+pub fn SlideList(slide_group: Signal<SlideGroupDto>, editable: bool) -> impl IntoView {
     let group_id = move || slide_group.read().id;
     let max_position = move || {
         slide_group
@@ -32,7 +32,7 @@ pub fn SlideList(slide_group: Signal<SlideGroupDto>, editeble: bool) -> impl Int
                 }
                     .into_any()
             }
-            children=move |slide| { view! { <SlideRow slide=slide slide_group=slide_group editeble=editeble /> }.into_any() }
+            children=move |slide| { view! { <SlideRow slide=slide slide_group=slide_group editable=editable /> }.into_any() }
         />
         {move || {
             view! {
@@ -90,7 +90,7 @@ fn AddSlideButton(#[prop(into)] group_id: Signal<i32>, max_position: Signal<i32>
 fn SlideRow(
     #[prop(into)] slide: Signal<SlideDto>,
     slide_group: Signal<SlideGroupDto>,
-    editeble: bool,
+    editable: bool,
 ) -> impl IntoView {
     let screens = use_context::<ScreenContext>()
         .expect("expected screen context")
@@ -128,7 +128,7 @@ fn SlideRow(
             </div>
             {move || {
                 view! {
-                    <Show when=move || !slide_group.get().archive_date.is_some() && editeble>
+                    <Show when=move || !slide_group.get().archive_date.is_some() && editable>
                         <div class="flex flex-row justify-center md:justify-start">
                             <button class="btn btn-soft btn-choose btn-error my-3" on:click=move |_| is_delete_dialog_open.set(true)>
                                 Delete Slide
