@@ -86,9 +86,21 @@ configs:
           email: turetek@kth.se
           first_name: Ture
           family_name: Teknolog
-          hive_tags:
-            - id: personal_email
-              content: turetek@gmail.com
+        - ug_kth_id: some-other-id
+          kth_id: diadat
+          email: diadat@kth.se
+          first_name: Diana
+          family_name: Datalog
+        - ug_kth_id: yet-another-id
+          kth_id: marmed
+          email: marmed@kth.se
+          first_name: Martin
+          family_name: Median
+        - ug_kth_id: even-more
+          kth_id: karklu
+          email: karklu@kth.se
+          first_name: Karin
+          family_name: Klubbare
 
       hive:
         groups:
@@ -100,3 +112,14 @@ configs:
             permissions:
               - id: admin
                 scope: null
+            tags:
+              - id: slide-manager
+          - name: METAdorerna
+            id: metadorerna
+            domain: example.com
+            members:
+              - diadat
+              - marmed
+            tags:
+              - id: slide-manager
+
