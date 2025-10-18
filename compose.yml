@@ -21,6 +21,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      nyckeln:
+        condition: service_healthy
     develop:
       watch:
         - action: rebuild
@@ -48,6 +50,12 @@ services:
     configs:
       - source: nyckeln.yaml
         target: /config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 7001 && nc -z localhost 7002 && nc -z localhost 7003 && nc -z localhost 7004"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
     ports:
       - 7001:7001
       - 7002:7002
