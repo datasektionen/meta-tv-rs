@@ -137,7 +137,7 @@ fn SlideGroupEditOptions(
                                     <label for="priority" class="label font-medium">Pin</label>
                                     <p class="text-gray-500">
                                         "Make this slide group the only one shown on the TV. "
-                                        <em>"Pins are cleared every night at 5 AM (Swedish time)."</em>
+                                        <em>"Pins are cleared every night at 05:00 (Swedish time)."</em>
                                     </p>
                                 </div>
                             </div>
