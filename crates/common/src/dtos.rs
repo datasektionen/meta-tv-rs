@@ -1,3 +1,5 @@
+//! Data transfer objects used when sending data between the frontend and backend.
+
 use std::{collections::HashMap, fmt::Display};
 
 use chrono::{DateTime, Utc};
@@ -144,4 +146,28 @@ pub struct FeedEntryDto {
 pub struct SessionDto {
     pub username: String,
     pub is_admin: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum LangDto {
+    En,
+    #[default]
+    Sv,
+}
+
+impl Display for LangDto {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            LangDto::En => "en",
+            LangDto::Sv => "sv",
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TaggedGroupDto {
+    pub group_name: String,
+    pub group_id: String,
+    pub group_domain: String,
+    pub tag_content: Option<String>,
 }

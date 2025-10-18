@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::AppError;
 
+pub mod hive;
 pub mod oidc;
 
 // can't be __Host- because it would not work on http://localhost in Chrome

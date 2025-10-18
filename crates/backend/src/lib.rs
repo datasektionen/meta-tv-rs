@@ -12,6 +12,8 @@ use rocket::{
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait};
 use sea_orm_rocket::Database;
 
+use crate::auth::hive::HiveInitializer;
+
 #[macro_use]
 extern crate rocket;
 
@@ -94,6 +96,7 @@ async fn setup_screens(rocket: Rocket<Build>) -> fairing::Result {
 pub(crate) fn rocket() -> Rocket<Build> {
     rocket::build()
         .attach(FilesInitializer)
+        .attach(HiveInitializer)
         .attach(OidcInitializer)
         .attach(Db::init())
         .attach(AdHoc::try_on_ignite("Migrations", run_migrations))
@@ -131,6 +134,7 @@ pub(crate) fn rocket() -> Rocket<Build> {
                 routes::auth::logout,
                 routes::auth::oidc_callback,
                 routes::auth::user_info,
+                routes::auth::user_memberships,
             ],
         )
         .register("/auth", catchers![routes::auth::not_logged_in])

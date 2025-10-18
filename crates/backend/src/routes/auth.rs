@@ -1,4 +1,4 @@
-use common::dtos::SessionDto;
+use common::dtos::{SessionDto, TaggedGroupDto};
 use rocket::{
     http::{uri::Host, CookieJar},
     response::Redirect,
@@ -7,9 +7,10 @@ use rocket::{
 };
 
 use crate::{
-    auth::{self, oidc::OidcClient, Session},
+    auth::{self, hive::HiveClient, oidc::OidcClient, Session},
     error::AppError,
     guards::scheme::RequestScheme,
+    routes::Lang,
 };
 
 #[rocket::get("/login", rank = 2)]
@@ -63,6 +64,24 @@ pub async fn user_info(session: Session) -> Json<SessionDto> {
         username: session.username,
         is_admin: session.is_admin,
     })
+}
+
+/// Get the groups which the logged in user is a part of.
+#[get("/user/memberships?<lang>")]
+pub async fn user_memberships(
+    lang: Option<Lang>,
+    session: auth::Session,
+    hive_client: &State<HiveClient>,
+) -> Result<Json<Vec<TaggedGroupDto>>, AppError> {
+    Ok(Json(
+        if session.is_admin {
+            hive_client.tagged_groups(lang.unwrap_or_default().into()).await?
+        } else {
+            hive_client
+                .tagged_memberships(&session.username, lang.unwrap_or_default().into())
+                .await?
+        },
+    ))
 }
 
 #[catch(401)]

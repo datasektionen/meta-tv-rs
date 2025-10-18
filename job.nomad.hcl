@@ -35,6 +35,7 @@ job "meta-tv" {
 {{ with nomadVar "nomad/jobs/meta-tv" }}
 ROCKET_DATABASES={sea_orm={url="postgresql://metatv:{{ .db_password }}@postgres.dsekt.internal:5432/metatv"}}
 ROCKET_OIDC={issuer_url="https://sso.datasektionen.se/op",client_id="{{ .oidc_client_id }}",client_secret="{{ .oidc_client_secret }}",redirect_url="https://tv.datasektionen.se/auth/oidc-callback"}
+ROCKET_HIVE={url="https://hive.datasektionen.se/api/v1",secret="{{ .hive_secret }}"}
 ROCKET_SECRET_KEY={{ .app_secret }}
 {{ end }}
 ROCKET_PORT={{ env "NOMAD_PORT_http" }}
