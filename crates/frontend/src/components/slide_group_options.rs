@@ -115,7 +115,7 @@ fn SlideGroupEditOptions(
                 </div>
                 <div class="border-b border-gray-100/10 pb-12">
                     <fieldset disabled=is_submitting>
-                        <h2 class="text-base/7 font-semibold">Visability</h2>
+                        <h2 class="text-base/7 font-semibold">Visibility</h2>
                         <div class="mt-6 space-y-6">
                             <div class="flex gap-3">
                                 <div class="flex h-6 shrink-0 items-center">
@@ -135,7 +135,10 @@ fn SlideGroupEditOptions(
                                 </div>
                                 <div class="text-sm/6">
                                     <label for="priority" class="label font-medium">Pin</label>
-                                    <p class="text-gray-500">Make this slide group the only on shown on the tv.</p>
+                                    <p class="text-gray-500">
+                                        "Make this slide group the only one shown on the TV. "
+                                        <em>"Pins are cleared every night at 05:00 (Swedish time)."</em>
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -155,7 +158,7 @@ fn SlideGroupEditOptions(
                                 </div>
                                 <div class="text-sm/6">
                                     <label for="hidden" class="label font-medium">Hidden</label>
-                                    <p class="text-gray-500">Remove this slide group from the tv.</p>
+                                    <p class="text-gray-500">Do not show this slide group on the TV.</p>
                                 </div>
                             </div>
                         </div>
