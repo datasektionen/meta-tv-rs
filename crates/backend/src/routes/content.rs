@@ -80,7 +80,7 @@ pub async fn create_content(
 #[cfg(test)]
 mod tests {
     use common::dtos::{
-        AppErrorDto, ContentDto, ContentType, CreateContentDto, SlideDto, SlideGroupDto,
+        AppErrorDto, ContentDto, ContentType, CreateContentDto, OwnerDto, SlideDto, SlideGroupDto,
     };
     use rocket::http::{self, Status};
     use rocket::serde::json;
@@ -148,7 +148,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(),
+                created_by: OwnerDto::User("johndoe".to_string()),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
@@ -230,7 +230,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(),
+                created_by: OwnerDto::User("johndoe".to_string()),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,

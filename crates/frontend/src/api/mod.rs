@@ -1,6 +1,5 @@
 use common::dtos::{
-    AppErrorDto, CreateContentDto, CreateSlideDto, CreateSlideGroupDto, CreatedDto, ScreenDto,
-    SessionDto, SlideGroupDto,
+    AppErrorDto, CreateContentDto, CreateSlideDto, CreateSlideGroupDto, CreatedDto, TaggedGroupDto, ScreenDto, SessionDto, SlideGroupDto
 };
 use gloo_net::http::{Request, Response};
 use leptos::{logging, server_fn::serde::de::DeserializeOwned};
@@ -61,6 +60,12 @@ async fn handle_blank_response(response: Response) -> Result<(), AppError> {
 
 pub async fn user_info() -> Result<SessionDto, AppError> {
     handle_response(Request::get("/auth/user").send().await?).await
+}
+
+// TODO: Remove once used.
+#[allow(unused)]
+pub async fn user_memberships() -> Result<Vec<TaggedGroupDto>, AppError> {
+    handle_response(Request::get("/auth/memberships").send().await?).await
 }
 
 pub async fn list_screens() -> Result<Vec<ScreenDto>, AppError> {

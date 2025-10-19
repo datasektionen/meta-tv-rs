@@ -302,9 +302,20 @@ fn SlideGroupViewOptions(
                         </Alert>
                     </Show>
                     <div class="grid grid-cols-3 gap-4">
-                        <PropertyDisplay icon=i::MdiAccount>
-                            {move || group.created_by.clone()}
-                        </PropertyDisplay>
+                        {move || match group.created_by.clone() {
+                            common::dtos::OwnerDto::User(username) => {
+                                view! {
+                                    <PropertyDisplay icon=i::MdiAccount>{username}</PropertyDisplay>
+                                }
+                            }
+                            common::dtos::OwnerDto::Group(group) => {
+                                view! {
+                                    <PropertyDisplay icon=i::MdiAccountGroup>
+                                        {group.name}
+                                    </PropertyDisplay>
+                                }
+                            }
+                        }}
                         <PropertyDisplay icon=fmt_if(
                             group.published,
                             i::MdiFileCheck,

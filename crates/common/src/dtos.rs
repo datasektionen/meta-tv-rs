@@ -53,12 +53,59 @@ pub struct SlideGroupDto {
     pub title: String,
     pub priority: i32,
     pub hidden: bool,
-    pub created_by: String,
+    pub created_by: OwnerDto,
     pub start_date: DateTime<Utc>,
     pub end_date: Option<DateTime<Utc>>,
     pub archive_date: Option<DateTime<Utc>>,
     pub published: bool,
     pub slides: Vec<SlideDto>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum OwnerDto {
+    User(String),
+    Group(GroupDto),
+}
+
+impl OwnerDto {
+    pub fn id(&self) -> String {
+        match self {
+            Self::User(user) => user.clone(),
+            Self::Group(group) => group.as_group(),
+        }
+    }
+}
+
+impl Default for OwnerDto {
+    fn default() -> Self {
+        Self::User(String::default())
+    }
+}
+
+/// Represents a group in Hive.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+pub struct GroupDto {
+    pub name: String,
+    pub id: String,
+    pub domain: String,
+}
+
+impl GroupDto {
+    /// Return self as group identifier syntax: `id@domain`
+    pub fn as_group(&self) -> String {
+        format!("{}@{}", self.id, self.domain)
+    }
+}
+
+impl From<TaggedGroupDto> for GroupDto {
+    fn from(value: TaggedGroupDto) -> Self {
+        Self {
+            name: value.group_name,
+            id: value.group_id,
+            domain: value.group_domain,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -164,7 +211,6 @@ impl Display for LangDto {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TaggedGroupDto {
     pub group_name: String,
     pub group_id: String,

@@ -1,18 +1,27 @@
-use common::dtos::{ContentDto, CreateSlideGroupDto, SlideDto, SlideGroupDto};
-use rocket::{http::Status, serde::json::Json};
+use common::dtos::{
+    ContentDto, CreateSlideGroupDto, GroupDto, LangDto, OwnerDto, SlideDto, SlideGroupDto,
+};
+use rocket::{http::Status, serde::json::Json, State};
 use sea_orm::{
-    sqlx::types::chrono, ActiveModelTrait, ColumnTrait, DatabaseTransaction, EntityTrait,
+    sqlx::types::chrono, ActiveModelTrait, ColumnTrait, DatabaseTransaction, DbErr, EntityTrait,
     QueryFilter, QueryOrder, QueryTrait, Set, TransactionTrait,
 };
 use sea_orm_rocket::Connection;
 
-use crate::{auth::Session, error::AppError, pool::Db};
+use crate::{
+    auth::{hive::HiveClient, Session},
+    error::AppError,
+    pool::Db,
+    routes::Lang,
+};
 
 use super::{build_created_response, CreatedResponse};
 
-#[get("/slide-group")]
+#[get("/slide-group?<lang>")]
 pub async fn list_slide_groups(
+    lang: Option<Lang>,
     conn: Connection<'_, Db>,
+    hive_client: &State<HiveClient>,
 ) -> Result<Json<Vec<SlideGroupDto>>, AppError> {
     let db = conn.into_inner();
 
@@ -28,16 +37,27 @@ pub async fn list_slide_groups(
     // TODO: make this run in parallel
     let mut res = Vec::with_capacity(groups.len());
     for group in groups {
-        res.push(get_slide_group_dto(group, true, &txn).await?);
+        res.push(
+            get_slide_group_dto(
+                group,
+                true,
+                lang.unwrap_or_default().into(),
+                &txn,
+                hive_client,
+            )
+            .await?,
+        );
     }
 
     Ok(Json(res))
 }
 
-#[get("/slide-group/<id>")]
+#[get("/slide-group/<id>?<lang>")]
 pub async fn get_slide_group(
     id: i32,
+    lang: Option<Lang>,
     conn: Connection<'_, Db>,
+    hive_client: &State<HiveClient>,
 ) -> Result<Json<SlideGroupDto>, AppError> {
     let db = conn.into_inner();
 
@@ -49,13 +69,24 @@ pub async fn get_slide_group(
         .await?
         .ok_or(AppError::SlideGroupNotFound)?;
 
-    Ok(Json(get_slide_group_dto(group, true, &txn).await?))
+    Ok(Json(
+        get_slide_group_dto(
+            group,
+            true,
+            lang.unwrap_or_default().into(),
+            &txn,
+            hive_client,
+        )
+        .await?,
+    ))
 }
 
 async fn get_slide_group_dto(
     group: entity::slide_group::Model,
     hide_archived: bool,
+    lang: LangDto,
     txn: &DatabaseTransaction,
+    hive_client: &HiveClient,
 ) -> Result<SlideGroupDto, AppError> {
     let slides = entity::slide::Entity::find()
         .order_by_asc(entity::slide::Column::Position)
@@ -76,7 +107,7 @@ async fn get_slide_group_dto(
         title: group.title,
         priority: group.priority,
         hidden: group.hidden,
-        created_by: group.created_by,
+        created_by: resolve_owner(group.created_by, lang, hive_client).await?,
         start_date: group.start_date.and_utc(),
         end_date: group.end_date.map(|d| d.and_utc()),
         archive_date: group.archive_date.map(|d| d.and_utc()),
@@ -206,6 +237,32 @@ pub async fn archive_slide_group(
     Ok(Status::NoContent)
 }
 
+#[put("/slide-group/<id>/owner", data = "<owner>")]
+pub async fn update_slide_group_owner(
+    _session: Session, // ensure logged in
+    conn: Connection<'_, Db>,
+    id: i32,
+    owner: Json<OwnerDto>,
+) -> Result<Status, AppError> {
+    let db = conn.into_inner();
+
+    let result = entity::slide_group::ActiveModel {
+        id: Set(id),
+        created_by: Set(owner.id()),
+        ..Default::default()
+    }
+    .update(db)
+    .await;
+
+    match result {
+        Ok(_) => {}
+        Err(DbErr::RecordNotUpdated) => return Err(AppError::SlideGroupNotFound),
+        Err(error) => return Err(error.into()),
+    };
+
+    Ok(Status::NoContent)
+}
+
 async fn get_non_archived_slide_group(
     id: i32,
     txn: &DatabaseTransaction,
@@ -222,9 +279,38 @@ async fn get_non_archived_slide_group(
     }
 }
 
+async fn resolve_owner(
+    username_or_group: String,
+    lang: LangDto,
+    hive_client: &HiveClient,
+) -> Result<OwnerDto, AppError> {
+    Ok(match username_or_group.split_once("@") {
+        Some((id, domain)) => {
+            // It feels very innefficient to query all groups and throw away all but one of the
+            // groups, but unfortunately I don't think there is a better endpoint in the Hive API.
+            OwnerDto::Group(
+                match hive_client
+                    .tagged_groups(lang)
+                    .await?
+                    .into_iter()
+                    .find(|group| group.group_id == id && group.group_domain == domain)
+                {
+                    Some(group) => group.into(),
+                    None => GroupDto {
+                        name: "<missing-group>".to_owned(),
+                        id: id.to_owned(),
+                        domain: domain.to_owned(),
+                    },
+                },
+            )
+        }
+        None => OwnerDto::User(username_or_group),
+    })
+}
+
 #[cfg(test)]
 mod tests {
-    use common::dtos::{CreateSlideGroupDto, SlideGroupDto};
+    use common::dtos::{CreateSlideGroupDto, OwnerDto, SlideGroupDto};
     use rocket::http::Status;
     use sea_orm::prelude::DateTimeUtc;
 
@@ -250,7 +336,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(),
+                created_by: OwnerDto::User("johndoe".to_string()),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
@@ -278,7 +364,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(),
+                created_by: OwnerDto::User("johndoe".to_string()),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
@@ -327,7 +413,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 1,
                 hidden: false,
-                created_by: "johndoe".to_string(),
+                created_by: OwnerDto::User("johndoe".to_string()),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
                 archive_date: None,
@@ -399,7 +485,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(),
+                created_by: OwnerDto::User("johndoe".to_string()),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
