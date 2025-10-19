@@ -1,7 +1,7 @@
 use chrono::Utc;
 use common::dtos::{CreateSlideGroupDto, SlideGroupDto};
 use icondata as i;
-use leptos::{leptos_dom::logging::console_log, prelude::*};
+use leptos::prelude::*;
 use leptos_icons::Icon;
 
 use crate::{
