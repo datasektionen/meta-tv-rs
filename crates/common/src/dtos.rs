@@ -84,7 +84,7 @@ impl Default for OwnerDto {
 }
 
 /// Represents a group in Hive.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default, Hash)]
 pub struct GroupDto {
     pub name: String,
     pub id: String,
@@ -211,6 +211,7 @@ impl Display for LangDto {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct TaggedGroupDto {
     pub group_name: String,
     pub group_id: String,

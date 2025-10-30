@@ -1,7 +1,7 @@
 use chrono::Utc;
-use common::dtos::{CreateSlideGroupDto, SlideGroupDto};
+use common::dtos::{CreateSlideGroupDto, GroupDto, OwnerDto, SlideGroupDto};
 use icondata as i;
-use leptos::prelude::*;
+use leptos::{html, logging, prelude::*};
 use leptos_icons::Icon;
 
 use crate::{
@@ -19,6 +19,7 @@ use crate::{
 #[component]
 pub fn SlideGroupOptions(
     #[prop(into)] slide_group: Signal<SlideGroupDto>,
+    #[prop(into)] user_memberships: Signal<Vec<GroupDto>>,
     is_editing_options: ReadSignal<bool>,
     set_editing_options: WriteSignal<bool>,
 ) -> impl IntoView {
@@ -29,6 +30,7 @@ pub fn SlideGroupOptions(
                 view! {
                     <SlideGroupViewOptions
                         slide_group=slide_group
+                        user_memberships=user_memberships
                         set_editing_options=set_editing_options
                     />
                 }
@@ -258,9 +260,11 @@ fn SlideGroupEditOptions(
 #[component]
 fn SlideGroupViewOptions(
     slide_group: Signal<SlideGroupDto>,
+    user_memberships: Signal<Vec<GroupDto>>,
     set_editing_options: WriteSignal<bool>,
 ) -> impl IntoView {
     let is_delete_dialog_open = RwSignal::new(false);
+    let is_transfer_ownership_dialog_open = RwSignal::new(false);
 
     view! {
         <div>
@@ -271,25 +275,54 @@ fn SlideGroupViewOptions(
                         open=is_delete_dialog_open
                         set_editing_options=set_editing_options
                     />
+                    <TransferOwnershipDialog
+                        slide_group=slide_group
+                        user_memberships=user_memberships
+                        open=is_transfer_ownership_dialog_open
+                    />
                     <Show when=move || !slide_group.read().archive_date.is_some()>
-                        <button on:click=move |_| set_editing_options.set(true) class="btn">Edit</button>
+                        <menu class="flex flex-row gap-2">
+                            <li>
+                                <button on:click=move |_| set_editing_options.set(true) class="btn">
+                                    Edit
+                                </button>
+                            </li>
 
-                        {move || {
-                            view! {
-                                <Show when=move || !slide_group.read().published>
-                                    <SlideGroupPublishButton group_id=Signal::derive(move || {
-                                        slide_group.read().id
-                                    }) />
-                                </Show>
-                            }
-                                .into_any()
-                        }}
+                            <li>
+                                <button
+                                    on:click=move |_| is_transfer_ownership_dialog_open.set(true)
+                                    class="btn"
+                                >
+                                    Transfer Ownership
+                                </button>
+                            </li>
 
-                        <button on:click=move |_| is_delete_dialog_open.set(true) class="btn btn-soft btn-error">Delete Group</button>
+                            {move || {
+                                view! {
+                                    <Show when=move || !slide_group.read().published>
+                                        <li>
+                                            <SlideGroupPublishButton group_id=Signal::derive(move || {
+                                                slide_group.read().id
+                                            }) />
+                                        </li>
+                                    </Show>
+                                }
+                                    .into_any()
+                            }}
+
+                            <li>
+                                <button
+                                    on:click=move |_| is_delete_dialog_open.set(true)
+                                    class="btn btn-soft btn-error"
+                                >
+                                    Delete Group
+                                </button>
+                            </li>
+                        </menu>
                     </Show>
-                }.into_any()
+                }
+                    .into_any()
             }}
-
             {move || {
                 let group = slide_group.get();
                 view! {
@@ -391,6 +424,104 @@ pub fn DeleteDialog(
                 <div class="mt-6 flex gap-3">
                     <button class="btn btn-error" on:click=move |_| {delete_action.dispatch(());}>
                         Delete
+                    </button>
+                    <button class="btn" type="button" on:click=move |_| open.set(false)>
+                        "Cancel"
+                    </button>
+                </div>
+            </div>
+        </Dialog>
+    }
+    .into_any()
+}
+
+#[component]
+fn TransferOwnershipDialog(
+    #[prop()] slide_group: Signal<SlideGroupDto>,
+    #[prop()] user_memberships: Signal<Vec<GroupDto>>,
+    open: RwSignal<bool>,
+) -> impl IntoView {
+    logging::log!("memberships: {:?}", user_memberships.get());
+    let action = Action::new_local(move |owner: &GroupDto| {
+        logging::log!("set owner to {:?}", owner);
+        let slide_group = slide_group.get();
+        let owner = owner.clone();
+        async move { api::update_slide_group_owner(slide_group.id, &owner).await }
+    });
+
+    let Some(page_context) = use_context::<SlideGroupOptionsContext>() else {
+        // if context is not available, then hide button
+        return ().into_any();
+    };
+
+    let response = move || action.value().get().map(|r| r.map(|_| ()));
+    Effect::new(move || {
+        if response().map(|res| res.is_ok()).unwrap_or_default() {
+            page_context.refresh_group.dispatch(());
+            open.set(false);
+        }
+    });
+
+    let select = NodeRef::<html::Select>::new();
+    let selected_group = Memo::new(move |_| -> Option<GroupDto> {
+        let index = select
+            .get()?
+            .value()
+            .parse::<usize>()
+            .expect("Option's values are indices");
+
+        Some(user_memberships.get()[index].clone())
+    });
+
+    view! {
+        <Dialog open=open>
+            <div class="card fieldset space-y-6 p-4">
+                // <form  class="fieldset">
+                <h2 class="fieldset-label">"Transfer Ownership"</h2>
+                <label class="label" for="hive-group">
+                    "Hive Group"
+                </label>
+                <select class="select" id="hive-group" node_ref=select>
+                    <ForEnumerate
+                        each=move || user_memberships.get()
+                        key=|group| group.clone()
+                        children=move |index, group: GroupDto| {
+                            logging::log!("Group: {:?}", group);
+                            let group_copy1 = group.clone();
+                            let group_copy2 = group.clone();
+                            view! {
+                                <Show
+                                    when=move || {
+                                        OwnerDto::Group(group_copy1.clone())
+                                            == slide_group.get().created_by
+                                    }
+                                    fallback=move || {
+                                        view! {
+                                            <option value=index>{group_copy2.name.clone()}</option>
+                                        }
+                                            .into_any()
+                                    }
+                                >
+                                    <option disabled selected value=index>
+                                        {group.name.clone()}
+                                    </option>
+                                </Show>
+                            }
+                        }
+                    />
+                </select>
+                <p class="label">"You can only move slides to Hive groups"</p>
+                <div class="mt-6 flex gap-3">
+                    <button
+                        class="btn btn-error"
+                        on:click=move |_| {
+                            action
+                                .dispatch(
+                                    selected_group.get().expect("There is a selected option"),
+                                );
+                        }
+                    >
+                        "Save"
                     </button>
                     <button class="btn" type="button" on:click=move |_| open.set(false)>
                         "Cancel"

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @plugin "./daisyui.js" {
   themes: light --default, dark --prefersdark;
-  include: button, card, skeleton;
+  include: button, card, skeleton, select;
   logs: false;
 }
 

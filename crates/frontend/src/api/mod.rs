@@ -1,5 +1,6 @@
 use common::dtos::{
-    AppErrorDto, CreateContentDto, CreateSlideDto, CreateSlideGroupDto, CreatedDto, TaggedGroupDto, ScreenDto, SessionDto, SlideGroupDto
+    AppErrorDto, CreateContentDto, CreateSlideDto, CreateSlideGroupDto, CreatedDto, GroupDto,
+    ScreenDto, SessionDto, SlideGroupDto, TaggedGroupDto,
 };
 use gloo_net::http::{Request, Response};
 use leptos::{logging, server_fn::serde::de::DeserializeOwned};
@@ -62,10 +63,8 @@ pub async fn user_info() -> Result<SessionDto, AppError> {
     handle_response(Request::get("/auth/user").send().await?).await
 }
 
-// TODO: Remove once used.
-#[allow(unused)]
 pub async fn user_memberships() -> Result<Vec<TaggedGroupDto>, AppError> {
-    handle_response(Request::get("/auth/memberships").send().await?).await
+    handle_response(Request::get("/auth/user/memberships").send().await?).await
 }
 
 pub async fn list_screens() -> Result<Vec<ScreenDto>, AppError> {
@@ -102,6 +101,16 @@ pub async fn update_slide_group(
     handle_blank_response(
         Request::put(&format!("/api/slide-group/{id}"))
             .json(slide_group)?
+            .send()
+            .await?,
+    )
+    .await
+}
+
+pub async fn update_slide_group_owner(id: i32, owner: &GroupDto) -> Result<(), AppError> {
+    handle_blank_response(
+        Request::put(&format!("/api/slide-group/{id}/owner"))
+            .json(owner)?
             .send()
             .await?,
     )
