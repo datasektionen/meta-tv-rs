@@ -5,9 +5,16 @@ WORKDIR /build
 
 RUN apk update && apk upgrade && apk add make alpine-sdk libffi-dev trunk gcompat build-base
 
-RUN wget https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64-musl
-RUN chmod +x tailwindcss-linux-x64-musl
-RUN mv tailwindcss-linux-x64-musl /usr/bin/tailwindcss
+ARG BUILDPLATFORM
+
+RUN case "$BUILDPLATFORM" in \
+    "linux/amd64")   wget -O TAILWIND_CSS https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64-musl;; \
+    "linux/arm64")   wget -O TAILWIND_CSS https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-arm64-musl;; \
+    *)               exit 1;; \
+    esac
+
+RUN chmod +x TAILWIND_CSS
+RUN mv TAILWIND_CSS /usr/bin/tailwindcss
 RUN tailwindcss
 
 RUN rustup target add wasm32-unknown-unknown
