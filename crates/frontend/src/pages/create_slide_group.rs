@@ -18,31 +18,29 @@ pub fn CreateSlideGroup() -> impl IntoView {
                 hidden: false,
                 start_date: now.clone(),
                 end_date: Some(
-                    now.clone()
+                    now.with_timezone(&chrono_tz::Europe::Stockholm)
                         .checked_add_days(chrono::Days::new(
-                            if now.time() // 02:00 utc is 03:00 in Stockholm (where META is)
-                                < chrono::NaiveTime::from_hms_opt(2, 0, 0).expect("02:00 is a time")
+                            // If time is between 00:00 and 03:00, don't add day
+                            if now.time()
+                                < chrono::NaiveTime::from_hms_opt(3, 0, 0).expect("03:00 is a time")
                             {
                                 0
                             } else {
                                 1
                             },
                         ))
-                        .unwrap_or_else(|| now.clone() + chrono::Duration::hours(24)) // If time is between 00:00 and 03:00, don't add day
+                        .unwrap_or_else(|| {
+                            now.with_timezone(&chrono_tz::Europe::Stockholm)
+                                + chrono::Duration::hours(24)
+                        })
                         .with_time(
-                            chrono::NaiveTime::from_hms_opt(2, 0, 0)
+                            chrono::NaiveTime::from_hms_opt(3, 0, 0)
                                 .expect("Rasmus thinks time exist (same as before)"),
                         ) // Make endtime 03:00 so things dissapear before people are back in META
                         .earliest()
-                        .expect("Time is proably before Year 2038"),
+                        .expect("Time is proably before Year 2038")
+                        .with_timezone(&chrono::Utc),
                 ),
-                /*end_date: Some(
-                    now.clone()
-                        .checked_add_months(chrono::Months::new(1))
-                        // Adding one month may result in an invalid date time (e.g. due to daylight
-                        // savings). Fallback to adding 30 days then to avoid the ambiguity.
-                        .unwrap_or_else(|| now + chrono::Duration::days(30)),
-                ),*/
             })
             .await
         }
