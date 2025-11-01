@@ -3,7 +3,8 @@ use crate::{
     components::{error::ErrorList, slide_group_options::SlideGroupOptions},
     context::{ScreenContext, SlideGroupOptionsContext},
 };
-use leptos::prelude::*;
+use common::dtos::GroupDto;
+use leptos::{logging, prelude::*};
 use leptos_router::{hooks::use_params, params::Params};
 
 #[derive(Params, PartialEq)]
@@ -31,6 +32,21 @@ pub fn EditSlideGroup() -> impl IntoView {
             .get()
             .map(|res| res.unwrap_or_default())
             .unwrap_or_default()
+    });
+    let user_memberships = LocalResource::new(move || async move {
+        api::user_memberships().await.unwrap_or_else(|error| {
+            logging::error!("Error /auth/user_memberships: {}", error);
+            // Is it ok to just return an empty list here?
+            Vec::new()
+        })
+    });
+    let user_memberships_memo = Memo::new(move |_| {
+        user_memberships
+            .get()
+            .unwrap_or_default()
+            .into_iter()
+            .map(GroupDto::from)
+            .collect::<Vec<_>>()
     });
     let refresh_action = Action::new(move |_: &()| {
         slide_group.refetch();
@@ -62,6 +78,7 @@ pub fn EditSlideGroup() -> impl IntoView {
                 <div class="container m-auto px-10">
                     <SlideGroupOptions
                         slide_group=slide_group_memo
+                        user_memberships=user_memberships_memo
                         is_editing_options=is_editing_options
                         set_editing_options=set_editing_options
                     />

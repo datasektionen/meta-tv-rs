@@ -13,6 +13,7 @@ entity = { path = "../entity" }
 entity-tag = "0.1.8"
 migration = { path = "../migration" }
 openidconnect = { version = "4.0.0", features = ["timing-resistant-secret-traits"] }
+reqwest = { version = "0.12.24", default-features = false, features = ["charset", "rustls-tls", "http2", "system-proxy", "json"] }
 rocket = { version = "0.5.1", features = ["json", "secrets"] }
 sea-orm = { version = "1.1.4", features = ["runtime-tokio-rustls", "sqlx-postgres", "sqlx-sqlite"] }
 sea-orm-rocket = "0.5.5"

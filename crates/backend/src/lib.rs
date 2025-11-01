@@ -15,6 +15,8 @@ use rocket::{
 use sea_orm::{ActiveModelTrait, ActiveValue::Set, EntityTrait};
 use sea_orm_rocket::Database;
 
+use crate::auth::hive::HiveInitializer;
+
 #[macro_use]
 extern crate rocket;
 
@@ -98,6 +100,7 @@ pub(crate) fn rocket() -> Rocket<Build> {
     std::thread::sleep(Duration::from_secs(2)); // Sleep to prevent race stuff (macbook go zoom)
     rocket::build()
         .attach(FilesInitializer)
+        .attach(HiveInitializer)
         .attach(OidcInitializer)
         .attach(Db::init())
         .attach(AdHoc::try_on_ignite("Migrations", run_migrations))
@@ -124,6 +127,7 @@ pub(crate) fn rocket() -> Rocket<Build> {
                 routes::slide_group::list_slide_groups,
                 routes::slide_group::publish_slide_group,
                 routes::slide_group::update_slide_group,
+                routes::slide_group::update_slide_group_owner,
             ],
         )
         .register("/api", catchers![routes::auth::not_logged_in])
@@ -135,6 +139,7 @@ pub(crate) fn rocket() -> Rocket<Build> {
                 routes::auth::logout,
                 routes::auth::oidc_callback,
                 routes::auth::user_info,
+                routes::auth::user_memberships,
             ],
         )
         .register("/auth", catchers![routes::auth::not_logged_in])

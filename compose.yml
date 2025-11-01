@@ -7,6 +7,7 @@ services:
     environment:
       - ROCKET_DATABASES={sea_orm={url="postgresql://postgres:postgres@db/metatv"}}
       - ROCKET_OIDC={issuer_url="http://localhost:7003",client_id="client-id",client_secret="client-secret",redirect_url="http://localhost:8000/auth/oidc-callback"}
+      - ROCKET_HIVE={url="http://nyckeln:7004/api/v1",secret="secret"}
       - ROCKET_UPLOAD_DIR="./uploads"
       - ROCKET_SECRET_KEY=2hMUcPB1UjTd2W8aZDBxoUC27R0z9c56992m3x2MTE4D
       - ROCKET_ADDRESS=0.0.0.0
@@ -20,6 +21,8 @@ services:
       target: /etc/nginx/nginx.conf
     depends_on:
       db:
+        condition: service_healthy
+      nyckeln:
         condition: service_healthy
     develop:
       watch:
@@ -48,6 +51,12 @@ services:
     configs:
       - source: nyckeln.yaml
         target: /config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 7001 && nc -z localhost 7002 && nc -z localhost 7003 && nc -z localhost 7004"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
     ports:
       - 7001:7001
       - 7002:7002
@@ -70,6 +79,13 @@ configs:
             proxy_pass http://nyckeln:7003;
           }
         }
+        server {
+          listen 7004;
+
+          location / {
+            proxy_pass http://nyckeln:7004;
+          }
+        }
       }
 
   nyckeln.yaml:
@@ -86,9 +102,21 @@ configs:
           email: turetek@kth.se
           first_name: Ture
           family_name: Teknolog
-          hive_tags:
-            - id: personal_email
-              content: turetek@gmail.com
+        - ug_kth_id: some-other-id
+          kth_id: diadat
+          email: diadat@kth.se
+          first_name: Diana
+          family_name: Datalog
+        - ug_kth_id: yet-another-id
+          kth_id: marmed
+          email: marmed@kth.se
+          first_name: Martin
+          family_name: Median
+        - ug_kth_id: even-more
+          kth_id: karklu
+          email: karklu@kth.se
+          first_name: Karin
+          family_name: Klubbare
 
       hive:
         groups:
@@ -100,3 +128,14 @@ configs:
             permissions:
               - id: admin
                 scope: null
+            tags:
+              - id: slide-manager
+          - name: METAdorerna
+            id: metadorerna
+            domain: example.com
+            members:
+              - diadat
+              - marmed
+            tags:
+              - id: slide-manager
+

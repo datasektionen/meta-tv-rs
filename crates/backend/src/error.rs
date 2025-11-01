@@ -43,6 +43,8 @@ pub enum AppError {
     StateSerializationError(#[source] serde_json::Error),
     #[error("failed to deserialize internal state from secure storage: {0}")]
     StateDeserializationError(#[source] serde_json::Error), // not from client-controlled
+    #[error("failed to complete internal request: {0}")]
+    InternalRequestFailure(#[from] reqwest::Error),
     #[error("authentication flow expired and can no longer be completed")]
     AuthenticationFlowExpired,
 }
@@ -64,6 +66,7 @@ impl AppError {
             AppError::OidcAuthenticationError(_) => Status::InternalServerError,
             AppError::StateSerializationError(_) => Status::InternalServerError,
             AppError::StateDeserializationError(_) => Status::InternalServerError,
+            AppError::InternalRequestFailure(_) => Status::InternalServerError,
             AppError::AuthenticationFlowExpired => Status::Gone,
         }
     }

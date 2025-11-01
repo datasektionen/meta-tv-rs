@@ -7,6 +7,7 @@ services:
     environment:
       - ROCKET_DATABASES={sea_orm={url="postgresql://postgres:postgres@db/metatv"}}
       - ROCKET_OIDC={issuer_url="https://sso.datasektionen.se/op",client_id="${CLIENT_ID}",client_secret="${CLIENT_SECRET}",redirect_url="http://localhost:8000/auth/oidc-callback"}
+      - ROCKET_HIVE={url="https://hive.datasektionen.se/api/v1",secret="${HIVE_SECRET}"}
       - ROCKET_UPLOAD_DIR="./uploads"
       - ROCKET_SECRET_KEY=2hMUcPB1UjTd2W8aZDBxoUC27R0z9c56992m3x2MTE4D
       - ROCKET_ADDRESS=0.0.0.0

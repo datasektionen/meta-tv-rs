@@ -97,7 +97,7 @@ pub async fn delete_slide(
 
 #[cfg(test)]
 mod tests {
-    use common::dtos::{AppErrorDto, MoveSlidesDto, SlideDto, SlideGroupDto};
+    use common::dtos::{AppErrorDto, MoveSlidesDto, OwnerDto, SlideDto, SlideGroupDto};
     use rocket::http::Status;
     use sea_orm::prelude::DateTimeUtc;
 
@@ -123,7 +123,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(),
+                created_by: OwnerDto::User("johndoe".to_string()),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
@@ -181,7 +181,7 @@ mod tests {
                 title: "Lorem Ipsum".to_string(),
                 priority: 0,
                 hidden: false,
-                created_by: "johndoe".to_string(),
+                created_by: OwnerDto::User("johndoe".to_string()),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: None,
                 archive_date: None,
