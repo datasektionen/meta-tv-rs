@@ -34,7 +34,9 @@ pub fn ScreenFeed() -> impl IntoView {
         <Transition fallback=|| {
             view! { <div>Loading...</div> }
         }>
+        <div class="bg-black">
             <ScreenFeedSlideshow feed=Signal::derive(data) />
+        </div>
         </Transition>
     }
     .into_any()
