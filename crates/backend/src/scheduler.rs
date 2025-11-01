@@ -70,7 +70,7 @@ pub async fn start(rocket: &Rocket<Orbit>) {
     let cloned_db = db.clone();
     scheduler
         .every(1.days())
-        .at("05:00")
+        .at("03:00")
         .run(move || log_job_error(unpin_slide_groups(cloned_db.clone())));
 
     let cloned_db = db.clone();
