@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use auth::oidc::OidcInitializer;
 use files::FilesInitializer;
@@ -92,6 +95,7 @@ async fn setup_screens(rocket: Rocket<Build>) -> fairing::Result {
 }
 
 pub(crate) fn rocket() -> Rocket<Build> {
+    std::thread::sleep(Duration::from_secs(2)); // Sleep to prevent race stuff (macbook go zoom)
     rocket::build()
         .attach(FilesInitializer)
         .attach(OidcInitializer)

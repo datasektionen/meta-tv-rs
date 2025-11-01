@@ -19,11 +19,30 @@ pub fn CreateSlideGroup() -> impl IntoView {
                 start_date: now.clone(),
                 end_date: Some(
                     now.clone()
+                        .checked_add_days(chrono::Days::new(
+                            if now.time() // 02:00 utc is 03:00 in Stockholm (where META is)
+                                < chrono::NaiveTime::from_hms_opt(2, 0, 0).expect("02:00 is a time")
+                            {
+                                0
+                            } else {
+                                1
+                            },
+                        ))
+                        .unwrap_or_else(|| now.clone() + chrono::Duration::hours(24)) // If time is between 00:00 and 03:00, don't add day
+                        .with_time(
+                            chrono::NaiveTime::from_hms_opt(2, 0, 0)
+                                .expect("Rasmus thinks time exist (same as before)"),
+                        ) // Make endtime 03:00 so things dissapear before people are back in META
+                        .earliest()
+                        .expect("Time is proably before Year 2038"),
+                ),
+                /*end_date: Some(
+                    now.clone()
                         .checked_add_months(chrono::Months::new(1))
                         // Adding one month may result in an invalid date time (e.g. due to daylight
                         // savings). Fallback to adding 30 days then to avoid the ambiguity.
                         .unwrap_or_else(|| now + chrono::Duration::days(30)),
-                ),
+                ),*/
             })
             .await
         }
