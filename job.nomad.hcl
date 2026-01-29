@@ -17,11 +17,6 @@ job "meta-tv" {
       ]
     }
 
-    volume "uploads" {
-      type = "host"
-      source = "meta-tv/uploads"
-    }
-
     task "meta-tv" {
       driver = "docker"
 
@@ -37,20 +32,17 @@ ROCKET_DATABASES={sea_orm={url="postgresql://metatv:{{ .db_password }}@postgres.
 ROCKET_OIDC={issuer_url="https://sso.datasektionen.se/op",client_id="{{ .oidc_client_id }}",client_secret="{{ .oidc_client_secret }}",redirect_url="https://tv.datasektionen.se/auth/oidc-callback"}
 ROCKET_HIVE={url="https://hive.datasektionen.se/api/v1",secret="{{ .hive_secret }}"}
 ROCKET_SECRET_KEY={{ .app_secret }}
+ROCKET_S3={url="{{ .aws_url }}", bucket="meta-tv"}
+AWS_ACCESS_KEY_ID="{{ .aws_access_key_id }}"
+AWS_SECRET_ACCESS_KEY="{{ .aws_secret_access_key }}"
 {{ end }}
 ROCKET_PORT={{ env "NOMAD_PORT_http" }}
 ROCKET_ADDRESS=0.0.0.0
-ROCKET_UPLOAD_DIR="/srv/uploads"
 ROCKET_LIMITS={file="50MiB", data-form="51MiB"}
 FEED_ENTRY_DURATION=30000
 ENV
         destination = "local/.env"
         env         = true
-      }
-
-      volume_mount {
-        volume = "uploads"
-        destination = "/srv/uploads"
       }
 
       resources {

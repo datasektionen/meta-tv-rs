@@ -57,6 +57,4 @@ WORKDIR /srv
 COPY --from=frontend-build /build/dist/ /www/static/
 COPY --from=build /build/target/release/meta-tv-rs meta-tv-rs
 
-RUN mkdir /srv/uploads
-
 CMD ["./meta-tv-rs"]

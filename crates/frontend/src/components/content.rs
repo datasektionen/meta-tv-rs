@@ -36,7 +36,7 @@ pub fn ContentItem(
                                 view! {
                                     <img
                                         class="object-contain h-full w-full"
-                                        src=format!("/uploads/{}", content.file_path)
+                                        src=&content.url
                                         on:click=move |_| is_upload_dialog_open.set(true)
                                     />
                                 }
@@ -49,7 +49,7 @@ pub fn ContentItem(
                                         muted
                                         preload="metadata"
                                         class="object-contain h-full w-full"
-                                        src=format!("/uploads/{}", content.file_path)
+                                        src=&content.url
                                         on:click=move |_| is_upload_dialog_open.set(true)
                                     />
                                 }
@@ -60,7 +60,7 @@ pub fn ContentItem(
                                     <iframe
                                         sandbox="allow-scripts allow-same-origin"
                                         class="object-contain h-full w-full"
-                                        src=format!("/uploads/{}", content.file_path)
+                                        src=&content.url
                                         on:click=move |_| is_upload_dialog_open.set(true)
                                     />
                                 }

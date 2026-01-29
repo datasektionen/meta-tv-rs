@@ -148,7 +148,7 @@ pub struct ContentDto {
     pub id: i32,
     pub screen: i32,
     pub content_type: ContentType,
-    pub file_path: String,
+    pub url: String,
     pub archive_date: Option<DateTime<Utc>>,
 }
 
@@ -185,7 +185,7 @@ impl From<entity::sea_orm_active_enums::ContentType> for ContentType {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct FeedEntryDto {
     pub content_type: ContentType,
-    pub file_path: String,
+    pub url: String,
     pub duration: i32, // milliseconds
 }
 
