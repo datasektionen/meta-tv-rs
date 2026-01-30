@@ -42,18 +42,21 @@
         };
 
         devShell = craneLib.devShell {
-          packages = with pkgs; [
-            rustfmt
-            rust-analyzer
-            clippy
-            sea-orm-cli
-            pkg-config
+          packages =
+            with pkgs;
+            [
+              rustfmt
+              rust-analyzer
+              clippy
+              sea-orm-cli
+              pkg-config
 
-            trunk
-            leptosfmt
-            lld
-            tailwindcss_4
-          ];
+              trunk
+              leptosfmt
+              lld
+              tailwindcss_4
+            ]
+            ++ libs;
 
           env = {
             LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath libs;
