@@ -1,25 +1,30 @@
-use std::path::{Path, PathBuf};
-
-use entity_tag::EntityTag;
+use aws_sdk_s3::primitives::ByteStream;
 use rocket::{
     data::Capped,
     fairing::{self, Fairing, Info, Kind},
     fs::TempFile,
     tokio::io::AsyncReadExt,
-    Build, Rocket, State,
+    Build, Rocket,
 };
+use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::fmt::Write;
 
-use crate::{cached_file::CachedFile, error::AppError};
+use crate::error::AppError;
 
 pub struct FilesInitializer;
 
+#[derive(Deserialize)]
+struct S3Config {
+    url: String,
+    bucket: String,
+    #[serde(default)]
+    use_mock: bool,
+}
+
 pub struct Files {
-    #[cfg(not(test))]
-    upload_dir: PathBuf,
-    #[cfg(test)]
-    upload_dir: tempfile::TempDir,
+    s3_client: aws_sdk_s3::Client,
+    s3_config: S3Config,
 }
 
 #[rocket::async_trait]
@@ -31,109 +36,78 @@ impl Fairing for FilesInitializer {
         }
     }
 
-    #[cfg(not(test))]
     async fn on_ignite(&self, rocket: Rocket<Build>) -> fairing::Result {
-        let upload_dir: PathBuf = match rocket.figment().extract_inner("upload_dir") {
+        let s3_config: S3Config = match rocket.figment().focus("s3").extract() {
             Ok(dir) => dir,
             Err(e) => {
-                error!("upload directory not specified: {}", e);
+                error!("s3 configuration incomplete: {}", e);
                 return Err(rocket);
             }
         };
 
-        let upload_dir = match upload_dir.canonicalize() {
-            Ok(dir) => dir,
-            Err(e) => {
-                error!("invalid upload directory: {}", e);
-                return Err(rocket);
-            }
+        let mut builder = aws_config::load_defaults(aws_config::BehaviorVersion::latest())
+            .await
+            .into_builder()
+            .region(aws_config::Region::new("eu-west-1"));
+        // For some stupid reason it isn't possible to conditionally set the endpoint url without a
+        // mutable reference...
+        builder.set_endpoint_url(s3_config.use_mock.then(|| s3_config.url.clone()));
+
+        let config = builder.build();
+        let config = aws_sdk_s3::config::Builder::from(&config)
+            .force_path_style(s3_config.use_mock)
+            .build();
+
+        let s3_client = aws_sdk_s3::Client::from_conf(config);
+
+        let files = Files {
+            s3_client,
+            s3_config,
         };
-
-        if !upload_dir.is_dir() {
-            error!("given upload directory is not a directory");
-            return Err(rocket);
-        }
-
-        info!("upload directory is set to {:?}", upload_dir);
-
-        let files = Files { upload_dir };
-        Ok(rocket.manage(files).mount("/uploads", routes![uploads]))
-    }
-
-    /// Handle using a temp dir for tests
-    #[cfg(test)]
-    async fn on_ignite(&self, rocket: Rocket<Build>) -> fairing::Result {
-        let dir = tempfile::tempdir().unwrap();
-
-        let files = Files { upload_dir: dir };
-        Ok(rocket.manage(files).mount("/uploads", routes![uploads]))
+        Ok(rocket.manage(files))
     }
 }
 
 impl Files {
-    pub async fn upload_file(&self, file: &mut Capped<TempFile<'_>>) -> Result<PathBuf, AppError> {
+    pub async fn upload_file(&self, file: &mut Capped<TempFile<'_>>) -> Result<String, AppError> {
         if !file.is_complete() {
             return Err(AppError::FileTooBig(file.len()));
         }
 
-        let mut buf = file.open().await?;
-        let mut hasher = Sha256::new();
-        let mut buffer = [0u8; 1024];
+        let mut content = Vec::new();
+        file.open().await?.read_to_end(&mut content).await?;
 
-        loop {
-            let count = buf.read(&mut buffer).await?;
-            if count == 0 {
-                break;
-            }
-            hasher.update(&buffer[..count]);
-        }
-        std::mem::drop(buf);
-
-        let hash = hasher.finalize();
-        let hash: String = hash.iter().fold("".to_string(), |mut s, b| {
-            write!(s, "{:02x}", b).unwrap();
-            s
-        });
-        let extension = file.content_type().and_then(|ct| ct.extension());
-        let file_path = PathBuf::from(&hash[..2]);
-        std::fs::create_dir_all(self.get_path().join(&file_path))?;
-        let file_name = match extension {
-            Some(ext) => format!("{}.{}", hash, ext),
-            None => hash,
+        let hash = {
+            let mut hasher = Sha256::new();
+            hasher.update(&content);
+            hasher.finalize().iter().fold("".to_string(), |mut s, b| {
+                write!(s, "{:02x}", b).unwrap();
+                s
+            })
         };
-        let file_path = file_path.join(file_name);
 
-        let dest_path = self.get_path().join(&file_path);
-        if !dest_path.try_exists()? {
-            // copying instead of `persist_to` because of cross-device limitations
-            file.move_copy_to(dest_path).await?;
-        } else if !dest_path.is_file() {
-            return Err(AppError::InternalError(
-                "destination path already exists, but it is not a file",
-            ));
-        }
+        let key = if let Some(ext) = file.content_type().and_then(|ct| ct.extension()) {
+            hash + "." + ext.as_str()
+        } else {
+            hash
+        };
 
-        Ok(file_path)
+        self.s3_client
+            .put_object()
+            .bucket(&self.s3_config.bucket)
+            .key(&key)
+            .body(ByteStream::from(content))
+            .set_content_type(
+                file.content_type()
+                    .map(|content_type| content_type.to_string()),
+            )
+            .send()
+            .await?;
+
+        Ok(key)
     }
 
-    #[cfg(not(test))]
-    fn get_path(&self) -> &Path {
-        self.upload_dir.as_path()
+    pub fn file_url(&self, key: &str) -> String {
+        format!("{}/{}/{}", self.s3_config.url, self.s3_config.bucket, key)
     }
-
-    #[cfg(test)]
-    fn get_path(&self) -> &Path {
-        self.upload_dir.path()
-    }
-}
-
-#[get("/<path..>")]
-async fn uploads(path: PathBuf, files_config: &State<Files>) -> Option<CachedFile<'static>> {
-    let path = files_config.get_path().join(&path);
-    // Setting etag to filename as it is set to a hash of the contents on file upload.
-    let etag = EntityTag::with_string(false, path.file_stem()?.to_str()?.to_owned()).ok()?;
-
-    CachedFile::open(path, etag, chrono::Duration::weeks(1))
-        .await
-        .ok()
 }

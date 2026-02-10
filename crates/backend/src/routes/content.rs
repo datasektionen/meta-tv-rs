@@ -56,16 +56,13 @@ pub async fn create_content(
         .exec(&txn)
         .await?;
 
-    let file_path = files.upload_file(&mut upload.file).await?;
+    let key = files.upload_file(&mut upload.file).await?;
 
     let res = entity::content::ActiveModel {
         slide: Set(upload.data.slide),
         screen: Set(upload.data.screen),
         content_type: Set(upload.data.content_type.into()),
-        file_path: Set(file_path
-            .to_str()
-            .expect("path to be valid utf-8")
-            .to_string()),
+        file_path: Set(key),
         ..Default::default()
     }
     .insert(&txn)
@@ -162,14 +159,14 @@ mod tests {
                             id: 1,
                             screen: 1,
                             content_type: ContentType::Html,
-                            file_path: "82/8286230721b68e5d0e15dabf39d5938611b053c320f95ed8a4fa556fd41e7457.html".to_string(),
+                            url: "82/8286230721b68e5d0e15dabf39d5938611b053c320f95ed8a4fa556fd41e7457.html".to_string(),
                             archive_date: None,
                         },
                         ContentDto {
                             id: 2,
                             screen: 2,
                             content_type: ContentType::Html,
-                            file_path: "39/39acde5bed34e4bd9a0374f628ea4c64fb515f92a9aa981e8a8d8414ef9ad799.html".to_string(),
+                            url: "39/39acde5bed34e4bd9a0374f628ea4c64fb515f92a9aa981e8a8d8414ef9ad799.html".to_string(),
                             archive_date: None,
                         }
                     ]
@@ -243,7 +240,7 @@ mod tests {
                         id: 2,
                         screen: 1,
                         content_type: ContentType::Html,
-                        file_path: "39/39acde5bed34e4bd9a0374f628ea4c64fb515f92a9aa981e8a8d8414ef9ad799.html".to_string(),
+                        url: "39/39acde5bed34e4bd9a0374f628ea4c64fb515f92a9aa981e8a8d8414ef9ad799.html".to_string(),
                         archive_date: None,
                     }]
                 },],

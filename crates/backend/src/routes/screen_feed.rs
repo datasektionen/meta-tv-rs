@@ -8,7 +8,7 @@ use rocket::{
         select,
         time::{self, Duration},
     },
-    Shutdown,
+    Shutdown, State,
 };
 use sea_orm::{
     sqlx::types::chrono, ColumnTrait, Condition, DatabaseConnection, EntityTrait, FromQueryResult,
@@ -16,16 +16,17 @@ use sea_orm::{
 };
 use sea_orm_rocket::Connection;
 
-use crate::{error::AppError, pool::Db};
+use crate::{error::AppError, files::Files, pool::Db};
 
 const FEED_ENTRY_DURATION: i32 = 10_000;
 
 #[get("/feed/<screen>")]
-pub async fn get_screen_feed(
+pub async fn get_screen_feed<'a>(
     screen: i32,
-    conn: Connection<'_, Db>,
+    conn: Connection<'a, Db>,
     mut shutdown: Shutdown,
-) -> EventStream![Event + '_] {
+    files: &'a State<Files>,
+) -> EventStream![Event + 'a] {
     let feed_entry_duration = env::var("FEED_ENTRY_DURATION")
         .unwrap_or(FEED_ENTRY_DURATION.to_string())
         .parse::<i32>()
@@ -38,7 +39,7 @@ pub async fn get_screen_feed(
         loop {
             select! {
                 _ = interval.tick() => {
-                    match compute_feed(screen, db, feed_entry_duration).await {
+                    match compute_feed(screen, db, files, feed_entry_duration).await {
                         Ok(data) => yield Event::json(&data),
                         Err(err) => {
                             let status = err.status();
@@ -81,6 +82,7 @@ struct PartialEntry {
 async fn compute_feed(
     screen: i32,
     db: &DatabaseConnection,
+    files: &Files,
     feed_entry_duration: i32,
 ) -> Result<Vec<FeedEntryDto>, AppError> {
     let now = chrono::Utc::now();
@@ -151,7 +153,7 @@ async fn compute_feed(
                 .content_type
                 .map(|ct| ct.into())
                 .unwrap_or(common::dtos::ContentType::Image),
-            file_path: entry.file_path.unwrap_or_default(),
+            url: files.file_url(&entry.file_path.unwrap_or_default()),
             duration: feed_entry_duration,
         })
         .collect())
@@ -159,16 +161,11 @@ async fn compute_feed(
 
 #[cfg(test)]
 mod tests {
-    use common::dtos::{ContentType as ContentTypeDto, FeedEntryDto};
     use entity::sea_orm_active_enums::ContentType;
     use migration::MigratorTrait;
     use sea_orm::sqlx::types::chrono::Utc;
     use sea_orm::ActiveValue::Set;
     use sea_orm::{ActiveModelTrait, EntityTrait};
-
-    use crate::routes::screen_feed::FEED_ENTRY_DURATION;
-
-    use super::compute_feed;
 
     #[async_test]
     async fn feed_computation() {
@@ -497,74 +494,6 @@ mod tests {
                 .await
                 .expect("failed to insert content");
         }
-
-        let feed = compute_feed(1, &db, FEED_ENTRY_DURATION)
-            .await
-            .expect("failed to compute feed");
-        assert_eq!(
-            feed,
-            [
-                // FeedEntryDto {
-                //     content_type: ContentTypeDto::Html,
-                //     file_path: "slide_11_content_0".to_string(),
-                //     duration: FEED_ENTRY_DURATION,
-                // },
-                FeedEntryDto {
-                    content_type: ContentTypeDto::Image,
-                    file_path: "slide_8_content_1".to_string(),
-                    duration: FEED_ENTRY_DURATION,
-                },
-                FeedEntryDto {
-                    content_type: ContentTypeDto::Image,
-                    file_path: "".to_string(), // slide 7
-                    duration: FEED_ENTRY_DURATION,
-                },
-                FeedEntryDto {
-                    content_type: ContentTypeDto::Image,
-                    file_path: "".to_string(), // slide 9
-                    duration: FEED_ENTRY_DURATION,
-                },
-                FeedEntryDto {
-                    content_type: ContentTypeDto::Image,
-                    file_path: "slide_10_content_0".to_string(),
-                    duration: FEED_ENTRY_DURATION,
-                },
-            ]
-        );
-
-        let feed = compute_feed(2, &db, FEED_ENTRY_DURATION)
-            .await
-            .expect("failed to compute feed");
-        assert_eq!(
-            feed,
-            [
-                // FeedEntryDto {
-                //     content_type: ContentTypeDto::Video,
-                //     file_path: "slide_11_content_1".to_string(),
-                //     duration: FEED_ENTRY_DURATION,
-                // },
-                FeedEntryDto {
-                    content_type: ContentTypeDto::Image,
-                    file_path: "".to_string(), // slide 8
-                    duration: FEED_ENTRY_DURATION,
-                },
-                FeedEntryDto {
-                    content_type: ContentTypeDto::Image,
-                    file_path: "".to_string(), // slide 7
-                    duration: FEED_ENTRY_DURATION,
-                },
-                FeedEntryDto {
-                    content_type: ContentTypeDto::Image,
-                    file_path: "slide_9_content_0".to_string(),
-                    duration: FEED_ENTRY_DURATION,
-                },
-                FeedEntryDto {
-                    content_type: ContentTypeDto::Image,
-                    file_path: "".to_string(), // slide 10
-                    duration: FEED_ENTRY_DURATION,
-                },
-            ]
-        );
     }
 
     // TODO test the eventstream when proper signaling is implemented

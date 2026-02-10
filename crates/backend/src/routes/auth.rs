@@ -73,15 +73,15 @@ pub async fn user_memberships(
     session: auth::Session,
     hive_client: &State<HiveClient>,
 ) -> Result<Json<Vec<TaggedGroupDto>>, AppError> {
-    Ok(Json(
-        if session.is_admin {
-            hive_client.tagged_groups(lang.unwrap_or_default().into()).await?
-        } else {
-            hive_client
-                .tagged_memberships(&session.username, lang.unwrap_or_default().into())
-                .await?
-        },
-    ))
+    Ok(Json(if session.is_admin {
+        hive_client
+            .tagged_groups(lang.unwrap_or_default().into())
+            .await?
+    } else {
+        hive_client
+            .tagged_memberships(&session.username, lang.unwrap_or_default().into())
+            .await?
+    }))
 }
 
 #[catch(401)]

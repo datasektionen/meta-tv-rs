@@ -8,14 +8,14 @@ services:
       - ROCKET_DATABASES={sea_orm={url="postgresql://postgres:postgres@db/metatv"}}
       - ROCKET_OIDC={issuer_url="http://localhost:7003",client_id="client-id",client_secret="client-secret",redirect_url="http://localhost:8000/auth/oidc-callback"}
       - ROCKET_HIVE={url="http://nyckeln:7004/api/v1",secret="secret"}
-      - ROCKET_UPLOAD_DIR="./uploads"
       - ROCKET_SECRET_KEY=2hMUcPB1UjTd2W8aZDBxoUC27R0z9c56992m3x2MTE4D
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
       - ROCKET_LIMITS={file="50MiB", data-form="51MiB"}
+      - ROCKET_S3={url="http://localhost:9090", bucket="meta-tv", use_mock=true}
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
       - FEED_ENTRY_DURATION=30000
-    volumes:
-      - upload:/srv/uploads
     configs:
     - source: nginx.conf
       target: /etc/nginx/nginx.conf
@@ -46,6 +46,13 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+  s3:
+    image: adobe/s3mock:latest
+    environment:
+      - COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS=meta-tv
+      - COM_ADOBE_TESTING_S3MOCK_STORE_REGION=eu-west-1
+    ports:
+      - 9090:9090
   nyckeln:
     image: ghcr.io/datasektionen/nyckeln-under-dorrmattan
     configs:
@@ -62,9 +69,6 @@ services:
       - 7002:7002
       - 7003:7003
       - 7004:7004
-
-volumes:
-  upload:
 
 configs:
   nginx.conf:
@@ -84,6 +88,13 @@ configs:
 
           location / {
             proxy_pass http://nyckeln:7004;
+          }
+        }
+        server {
+          listen 9090;
+
+          location / {
+            proxy_pass http://s3:9090;
           }
         }
       }

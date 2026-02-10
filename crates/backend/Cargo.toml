@@ -1,10 +1,12 @@
 [package]
 name = "meta-tv-rs"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 default-run = "meta-tv-rs"
 
 [dependencies]
+aws-config = "1.8.11"
+aws-sdk-s3 = "1.96.0"
 chrono = "0.4.40"
 chrono-tz = "0.10.4"
 clokwerk = "0.4.0"

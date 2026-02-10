@@ -11,6 +11,7 @@ pub struct Model {
     pub slide: i32,
     pub screen: i32,
     pub content_type: ContentType,
+    /// Object key in the S3 bucket.
     pub file_path: String,
     pub archive_date: Option<DateTime>,
 }

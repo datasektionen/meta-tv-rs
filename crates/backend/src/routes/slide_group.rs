@@ -11,6 +11,7 @@ use sea_orm_rocket::Connection;
 use crate::{
     auth::{hive::HiveClient, Session},
     error::AppError,
+    files::Files,
     pool::Db,
     routes::Lang,
 };
@@ -22,6 +23,7 @@ pub async fn list_slide_groups(
     lang: Option<Lang>,
     conn: Connection<'_, Db>,
     hive_client: &State<HiveClient>,
+    files: &State<Files>,
 ) -> Result<Json<Vec<SlideGroupDto>>, AppError> {
     let db = conn.into_inner();
 
@@ -44,6 +46,7 @@ pub async fn list_slide_groups(
                 lang.unwrap_or_default().into(),
                 &txn,
                 hive_client,
+                files,
             )
             .await?,
         );
@@ -58,6 +61,7 @@ pub async fn get_slide_group(
     lang: Option<Lang>,
     conn: Connection<'_, Db>,
     hive_client: &State<HiveClient>,
+    files: &State<Files>,
 ) -> Result<Json<SlideGroupDto>, AppError> {
     let db = conn.into_inner();
 
@@ -76,6 +80,7 @@ pub async fn get_slide_group(
             lang.unwrap_or_default().into(),
             &txn,
             hive_client,
+            files,
         )
         .await?,
     ))
@@ -87,6 +92,7 @@ async fn get_slide_group_dto(
     lang: LangDto,
     txn: &DatabaseTransaction,
     hive_client: &HiveClient,
+    files: &Files,
 ) -> Result<SlideGroupDto, AppError> {
     let slides = entity::slide::Entity::find()
         .order_by_asc(entity::slide::Column::Position)
@@ -124,7 +130,7 @@ async fn get_slide_group_dto(
                         id: content.id,
                         screen: content.screen,
                         content_type: content.content_type.into(),
-                        file_path: content.file_path,
+                        url: files.file_url(&content.file_path),
                         archive_date: content.archive_date.map(|d| d.and_utc()),
                     })
                     .collect(),

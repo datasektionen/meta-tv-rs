@@ -21,7 +21,6 @@ use crate::auth::hive::HiveInitializer;
 extern crate rocket;
 
 mod auth;
-mod cached_file;
 mod error;
 mod files;
 mod guards;

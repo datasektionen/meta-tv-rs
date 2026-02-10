@@ -1,3 +1,4 @@
+use aws_sdk_s3::operation::put_object::PutObjectError;
 use common::dtos::AppErrorDto;
 use rocket::{
     error,
@@ -29,6 +30,10 @@ pub enum AppError {
     SlideArchived,
     #[error("database error: {0}")]
     DatabaseError(#[from] DbErr),
+    #[error("S3 error: {0}")]
+    S3Error(
+        #[from] aws_sdk_s3::error::SdkError<PutObjectError, aws_sdk_s3::config::http::HttpResponse>,
+    ),
     #[error("io error: {0}")]
     IoError(#[from] std::io::Error),
     #[error("internal error: {0}")]
@@ -60,6 +65,7 @@ impl AppError {
             AppError::SlideNotFound => Status::NotFound,
             AppError::SlideArchived => Status::Forbidden,
             AppError::DatabaseError(_) => Status::InternalServerError,
+            AppError::S3Error(_) => Status::InternalServerError,
             AppError::IoError(_) => Status::InternalServerError,
             AppError::InternalError(_) => Status::InternalServerError,
             AppError::LoginUnauthorized => Status::Forbidden,

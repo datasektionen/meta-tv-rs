@@ -8,14 +8,14 @@ services:
       - ROCKET_DATABASES={sea_orm={url="postgresql://postgres:postgres@db/metatv"}}
       - ROCKET_OIDC={issuer_url="https://sso.datasektionen.se/op",client_id="${CLIENT_ID}",client_secret="${CLIENT_SECRET}",redirect_url="http://localhost:8000/auth/oidc-callback"}
       - ROCKET_HIVE={url="https://hive.datasektionen.se/api/v1",secret="${HIVE_SECRET}"}
-      - ROCKET_UPLOAD_DIR="./uploads"
       - ROCKET_SECRET_KEY=2hMUcPB1UjTd2W8aZDBxoUC27R0z9c56992m3x2MTE4D
       - ROCKET_ADDRESS=0.0.0.0
       - ROCKET_PORT=8000
       - ROCKET_LIMITS={file="50MiB", data-form="51MiB"}
+      - ROCKET_S3={url="${AWS_URL}", bucket="meta-tv"}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - FEED_ENTRY_DURATION=30000
-    volumes:
-      - upload:/srv/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -37,6 +37,3 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-
-volumes:
-  upload:

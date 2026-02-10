@@ -45,7 +45,7 @@ pub fn ScreenFeedSlideshow(feed: Signal<Vec<FeedEntryDto>>) -> impl IntoView {
                             view! {
                                 <img
                                     class="object-contain h-screen w-screen"
-                                    src=format!("/uploads/{}", entry.file_path)
+                                    src=&entry.url
                                 />
                             }
                                 .into_any()
@@ -59,7 +59,7 @@ pub fn ScreenFeedSlideshow(feed: Signal<Vec<FeedEntryDto>>) -> impl IntoView {
                                     preload="auto"
                                     playsinline
                                     class="object-contain h-screen w-screen"
-                                    src=format!("/uploads/{}", entry.file_path)
+                                    src=&entry.url
                                     on:loadedmetadata:target=move |ev| {
                                         let target = ev.target();
                                         target.set_muted(true);
@@ -75,7 +75,7 @@ pub fn ScreenFeedSlideshow(feed: Signal<Vec<FeedEntryDto>>) -> impl IntoView {
                                 <iframe
                                     sandbox="allow-scripts allow-same-origin"
                                     class="object-contain h-screen w-screen"
-                                    src=format!("/uploads/{}", entry.file_path)
+                                    src=&entry.url
                                 />
                             }
                                 .into_any()
