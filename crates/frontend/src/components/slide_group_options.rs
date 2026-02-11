@@ -328,7 +328,7 @@ fn SlideGroupViewOptions(
                 view! {
                     <h1 class="text-6xl mb-6">{group.title}</h1>
                     <Show when=move || group.archive_date.is_some()>
-                        <Alert icon=i::MdiDeleteAlert class="bg-red-300">
+                        <Alert icon=i::MdiDeleteAlert class="alert-error">
                             "These slides have been deleted on "
                             {move || fmt_datetime_opt(group.archive_date.as_ref(), "None")}
                             " and can't be edited further"

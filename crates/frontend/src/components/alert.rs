@@ -8,13 +8,9 @@ pub fn Alert(
     children: Children,
 ) -> impl IntoView {
     view! {
-        <div class=[
-            "flex gap-4 items-center text-lg rounded-lg px-4 py-2 my-4",
-            class.read().unwrap_or_default(),
-        ]
-            .join(" ")>
+        <div role="alert" class=["alert text-lg my-4", class.read().unwrap_or_default()].join(" ")>
             <Icon icon=icon width="1.5em" height="1.5em" />
-            <div>{children()}</div>
+            <span>{children()}</span>
         </div>
     }
     .into_any()
