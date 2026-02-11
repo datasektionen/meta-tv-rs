@@ -4,7 +4,7 @@ use common::dtos::{
 use rocket::{http::Status, serde::json::Json, State};
 use sea_orm::{
     sqlx::types::chrono, ActiveModelTrait, ColumnTrait, DatabaseTransaction, DbErr, EntityTrait,
-    QueryFilter, QueryOrder, QueryTrait, Set, TransactionTrait,
+    QueryFilter, QueryOrder, QuerySelect, QueryTrait, Set, TransactionTrait,
 };
 use sea_orm_rocket::Connection;
 
@@ -17,6 +17,39 @@ use crate::{
 };
 
 use super::{build_created_response, CreatedResponse};
+
+/// Checks if the given session is allowed to edit the slide group with the given `id`.
+/// Returns an appropriate `AppError` if not authorized.
+async fn check_slide_group_ownership(
+    session: &Session,
+    txn: &DatabaseTransaction,
+    hive_client: &HiveClient,
+    id: i32,
+) -> Result<(), AppError> {
+    let username_or_group = entity::slide_group::Entity::find_by_id(id)
+        .select_only()
+        .column(entity::slide_group::Column::CreatedBy)
+        .into_tuple::<String>()
+        .one(txn)
+        .await?
+        .ok_or(AppError::SlideGroupNotFound)?;
+
+    let is_owner = session.is_admin
+        // `session.username` is guaranteed to not contain "@".
+        || session.username == username_or_group
+        || (username_or_group.contains('@')
+            && hive_client
+                .tagged_memberships(&session.username, LangDto::Sv)
+                .await?
+                .iter()
+                .any(|membership| membership.as_group() == username_or_group));
+
+    if !is_owner {
+        Err(AppError::Unauthorized)
+    } else {
+        Ok(())
+    }
+}
 
 #[get("/slide-group?<lang>")]
 pub async fn list_slide_groups(
@@ -166,14 +199,16 @@ pub async fn create_slide_group(
 
 #[put("/slide-group/<id>", data = "<slide_group>")]
 pub async fn update_slide_group(
-    _session: Session, // ensure logged in
+    session: Session,
     conn: Connection<'_, Db>,
     id: i32,
+    hive_client: &State<HiveClient>,
     slide_group: Json<CreateSlideGroupDto>,
 ) -> Result<Status, AppError> {
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
+    check_slide_group_ownership(&session, &txn, hive_client, id).await?;
     get_non_archived_slide_group(id, &txn).await?;
 
     entity::slide_group::ActiveModel {
@@ -195,13 +230,15 @@ pub async fn update_slide_group(
 
 #[put("/slide-group/<id>/publish")]
 pub async fn publish_slide_group(
-    _session: Session, // ensure logged in
+    session: Session,
     conn: Connection<'_, Db>,
+    hive_client: &State<HiveClient>,
     id: i32,
 ) -> Result<Status, AppError> {
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
+    check_slide_group_ownership(&session, &txn, hive_client, id).await?;
     get_non_archived_slide_group(id, &txn).await?;
 
     entity::slide_group::ActiveModel {
@@ -219,13 +256,15 @@ pub async fn publish_slide_group(
 
 #[delete("/slide-group/<id>")]
 pub async fn archive_slide_group(
-    _session: Session, // ensure logged in
+    session: Session,
     conn: Connection<'_, Db>,
+    hive_client: &State<HiveClient>,
     id: i32,
 ) -> Result<Status, AppError> {
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
+    check_slide_group_ownership(&session, &txn, hive_client, id).await?;
     get_non_archived_slide_group(id, &txn).await?;
 
     let now = chrono::Utc::now().naive_utc();
@@ -245,20 +284,26 @@ pub async fn archive_slide_group(
 
 #[put("/slide-group/<id>/owner", data = "<owner>")]
 pub async fn update_slide_group_owner(
-    _session: Session, // ensure logged in
+    session: Session,
     conn: Connection<'_, Db>,
+    hive_client: &State<HiveClient>,
     id: i32,
     owner: Json<OwnerDto>,
 ) -> Result<Status, AppError> {
     let db = conn.into_inner();
+    let txn = db.begin().await?;
+
+    check_slide_group_ownership(&session, &txn, hive_client, id).await?;
 
     let result = entity::slide_group::ActiveModel {
         id: Set(id),
         created_by: Set(owner.id()),
         ..Default::default()
     }
-    .update(db)
+    .update(&txn)
     .await;
+
+    txn.commit().await?;
 
     match result {
         Ok(_) => {}

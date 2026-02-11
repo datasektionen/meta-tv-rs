@@ -1,4 +1,4 @@
-use common::dtos::{SessionDto, TaggedGroupDto};
+use common::dtos::UserInfoDto;
 use rocket::{
     http::{uri::Host, CookieJar},
     response::Redirect,
@@ -58,22 +58,14 @@ pub async fn logout(jar: &CookieJar<'_>) -> Redirect {
     Redirect::to("/")
 }
 
-#[rocket::get("/user")]
-pub async fn user_info(session: Session) -> Json<SessionDto> {
-    Json(SessionDto {
-        username: session.username,
-        is_admin: session.is_admin,
-    })
-}
-
-/// Get the groups which the logged in user is a part of.
-#[get("/user/memberships?<lang>")]
-pub async fn user_memberships(
+/// Get the username and groups of the logged in user, as well as if they're an admin.
+#[rocket::get("/user?<lang>")]
+pub async fn user_info(
     lang: Option<Lang>,
-    session: auth::Session,
+    session: Session,
     hive_client: &State<HiveClient>,
-) -> Result<Json<Vec<TaggedGroupDto>>, AppError> {
-    Ok(Json(if session.is_admin {
+) -> Result<Json<UserInfoDto>, AppError> {
+    let memberships = if session.is_admin {
         hive_client
             .tagged_groups(lang.unwrap_or_default().into())
             .await?
@@ -81,6 +73,12 @@ pub async fn user_memberships(
         hive_client
             .tagged_memberships(&session.username, lang.unwrap_or_default().into())
             .await?
+    };
+
+    Ok(Json(UserInfoDto {
+        username: session.username,
+        is_admin: session.is_admin,
+        memberships,
     }))
 }
 
@@ -91,7 +89,7 @@ pub async fn not_logged_in() -> AppError {
 
 #[cfg(test)]
 mod tests {
-    use common::dtos::SessionDto;
+    use common::dtos::UserInfoDto;
     use rocket::http::Status;
 
     use crate::test_utils::TestClient;
@@ -105,9 +103,10 @@ mod tests {
         assert_eq!(response.status(), Status::Ok);
         assert_eq!(
             response.into_json(),
-            Some(SessionDto {
+            Some(UserInfoDto {
                 username: "johndoe".to_string(),
-                is_admin: false
+                is_admin: false,
+                memberships: Vec::new(),
             })
         );
     }
@@ -121,9 +120,10 @@ mod tests {
         assert_eq!(response.status(), Status::Ok);
         assert_eq!(
             response.into_json(),
-            Some(SessionDto {
+            Some(UserInfoDto {
                 username: "janedoe".to_string(),
-                is_admin: true
+                is_admin: true,
+                memberships: Vec::new(),
             })
         );
     }

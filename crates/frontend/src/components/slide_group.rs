@@ -1,9 +1,10 @@
-use common::dtos::SlideGroupDto;
+use common::dtos::{OwnerDto, SlideGroupDto, UserInfoDto};
 use icondata as i;
 use leptos::prelude::*;
 use leptos_icons::Icon;
 
 use crate::{
+    api::AppError,
     components::{alert::Alert, slide::SlideList},
     utils::{
         bool::fmt_if,
@@ -16,6 +17,15 @@ use crate::{
 /// Should not include a lot of data.
 #[component]
 pub fn SlideGroupOverview(#[prop(into)] slide_group: Signal<SlideGroupDto>) -> impl IntoView {
+    let user_info = use_context::<LocalResource<Result<UserInfoDto, AppError>>>()
+        .expect("User info has been provided");
+    let is_owner = move || {
+        user_info
+            .get()
+            .and_then(|info| info.ok())
+            .map(|info| slide_group.get().created_by.is_owner(&info))
+            .unwrap_or(false)
+    };
     view! {
         <div>
             {move || {
@@ -26,10 +36,23 @@ pub fn SlideGroupOverview(#[prop(into)] slide_group: Signal<SlideGroupDto>) -> i
                             <a href=format!("/slides/{}", group.id)>{group.title}</a>
                         </h1>
                         <div class="text-right grow">
-                            <a href=format!("/slides/{}", group.id) class="btn btn-primary">
-                                "View Details"
-                                <Icon icon=i::MdiArrowRight width="1.5em" height="1.5em" />
-                            </a>
+                            <div
+                                class="tooltip-error"
+                                class:tooltip=!is_owner()
+                                data-tip=match &slide_group.get().created_by {
+                                    OwnerDto::User(username) => format!("Only {} can edit this slide group", username),
+                                    OwnerDto::Group(group) => format!("Only members of {} can edit this slide group", group.name),
+                                }
+                            >
+                                <a
+                                    href=format!("/slides/{}", group.id)
+                                    class="btn btn-primary"
+                                    class:btn-disabled=!is_owner()
+                                >
+                                    "View Details"
+                                    <Icon icon=i::MdiArrowRight width="1.5em" height="1.5em" />
+                                </a>
+                            </div>
                         </div>
                     </div>
                     <Show when=move || group.archive_date.is_some()>

@@ -61,6 +61,19 @@ pub struct SlideGroupDto {
     pub slides: Vec<SlideDto>,
 }
 
+impl SlideGroupDto {
+    pub fn is_owner(&self, user_info: &UserInfoDto) -> bool {
+        user_info.is_admin
+            || match &self.created_by {
+                OwnerDto::User(username) => username == &user_info.username,
+                OwnerDto::Group(group) => user_info
+                    .memberships
+                    .iter()
+                    .any(|membership| membership.as_group() == group.as_group()),
+            }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum OwnerDto {
@@ -74,6 +87,18 @@ impl OwnerDto {
             Self::User(user) => user.clone(),
             Self::Group(group) => group.as_group(),
         }
+    }
+
+    /// Returns true if the provided user info is considered an owner of this.
+    pub fn is_owner(&self, user_info: &UserInfoDto) -> bool {
+        user_info.is_admin
+            || match &self {
+                OwnerDto::User(username) => username == &user_info.username,
+                OwnerDto::Group(group) => user_info
+                    .memberships
+                    .iter()
+                    .any(|membership| membership.as_group() == group.as_group()),
+            }
     }
 }
 
@@ -190,9 +215,10 @@ pub struct FeedEntryDto {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct SessionDto {
+pub struct UserInfoDto {
     pub username: String,
     pub is_admin: bool,
+    pub memberships: Vec<TaggedGroupDto>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -217,4 +243,11 @@ pub struct TaggedGroupDto {
     pub group_id: String,
     pub group_domain: String,
     pub tag_content: Option<String>,
+}
+
+impl TaggedGroupDto {
+    /// Return self as group identifier syntax: `id@domain`
+    pub fn as_group(&self) -> String {
+        format!("{}@{}", self.group_id, self.group_domain)
+    }
 }

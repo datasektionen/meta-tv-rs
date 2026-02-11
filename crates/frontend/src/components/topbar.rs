@@ -1,10 +1,12 @@
+use common::dtos::UserInfoDto;
 use leptos::prelude::*;
 
-use crate::api::{self, AppError};
+use crate::api::AppError;
 
 #[component]
 pub fn Topbar() -> impl IntoView {
-    let user_info = LocalResource::new(async move || api::user_info().await);
+    let user_info = use_context::<LocalResource<Result<UserInfoDto, AppError>>>()
+        .expect("User info has been provided");
 
     view! {
         <div class="container m-auto min-h-10 flex justify-between py-2">
