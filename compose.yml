@@ -51,6 +51,7 @@ services:
     environment:
       - COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS=meta-tv
       - COM_ADOBE_TESTING_S3MOCK_STORE_REGION=eu-west-1
+      - COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT=true
     ports:
       - 9090:9090
   nyckeln:
