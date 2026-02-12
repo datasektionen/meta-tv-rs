@@ -61,19 +61,6 @@ pub struct SlideGroupDto {
     pub slides: Vec<SlideDto>,
 }
 
-impl SlideGroupDto {
-    pub fn is_owner(&self, user_info: &UserInfoDto) -> bool {
-        user_info.is_admin
-            || match &self.created_by {
-                OwnerDto::User(username) => username == &user_info.username,
-                OwnerDto::Group(group) => user_info
-                    .memberships
-                    .iter()
-                    .any(|membership| membership.as_group() == group.as_group()),
-            }
-    }
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum OwnerDto {
@@ -89,10 +76,10 @@ impl OwnerDto {
         }
     }
 
-    /// Returns true if the provided user info is considered an owner of this.
+    /// Returns true if the provided user is included in these owners.
     pub fn is_owner(&self, user_info: &UserInfoDto) -> bool {
         user_info.is_admin
-            || match &self {
+            || match self {
                 OwnerDto::User(username) => username == &user_info.username,
                 OwnerDto::Group(group) => user_info
                     .memberships
