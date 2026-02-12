@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use common::dtos::{LangDto, UserInfoDto};
 use oidc::OidcClient;
 use rocket::{
     http::{Cookie, CookieJar, SameSite, Status},
@@ -7,7 +8,7 @@ use rocket::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::error::AppError;
+use crate::{auth::hive::HiveClient, error::AppError};
 
 pub mod hive;
 pub mod oidc;
@@ -21,6 +22,24 @@ pub struct Session {
     pub username: String,
     pub is_admin: bool,
     pub expiration: DateTime<Utc>,
+}
+
+impl Session {
+    pub async fn populate(&self, hive_client: &HiveClient) -> reqwest::Result<UserInfoDto> {
+        let memberships = if self.is_admin {
+            hive_client.tagged_groups(LangDto::Sv).await?
+        } else {
+            hive_client
+                .tagged_memberships(&self.username, LangDto::Sv)
+                .await?
+        };
+
+        Ok(UserInfoDto {
+            username: self.username.clone(),
+            is_admin: self.is_admin,
+            memberships,
+        })
+    }
 }
 
 #[rocket::async_trait]

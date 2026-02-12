@@ -1,5 +1,6 @@
 use common::dtos::{
     ContentDto, CreateSlideGroupDto, GroupDto, LangDto, OwnerDto, SlideDto, SlideGroupDto,
+    UserInfoDto,
 };
 use rocket::{http::Status, serde::json::Json, State};
 use sea_orm::{
@@ -18,12 +19,11 @@ use crate::{
 
 use super::{build_created_response, CreatedResponse};
 
-/// Checks if the given session is allowed to edit the slide group with the given `id`.
+/// Checks if the given user is allowed to edit the slide group with the given `id`.
 /// Returns an appropriate `AppError` if not authorized.
-async fn check_slide_group_ownership(
-    session: &Session,
+pub async fn check_slide_group_ownership(
+    user_info: &UserInfoDto,
     txn: &DatabaseTransaction,
-    hive_client: &HiveClient,
     id: i32,
 ) -> Result<(), AppError> {
     let username_or_group = entity::slide_group::Entity::find_by_id(id)
@@ -34,13 +34,12 @@ async fn check_slide_group_ownership(
         .await?
         .ok_or(AppError::SlideGroupNotFound)?;
 
-    let is_owner = session.is_admin
-        // `session.username` is guaranteed to not contain "@".
-        || session.username == username_or_group
+    let is_owner = user_info.is_admin
+        // `user_info.username` is guaranteed to not contain "@".
+        || user_info.username == username_or_group
         || (username_or_group.contains('@')
-            && hive_client
-                .tagged_memberships(&session.username, LangDto::Sv)
-                .await?
+            && user_info
+                .memberships
                 .iter()
                 .any(|membership| membership.as_group() == username_or_group));
 
@@ -208,7 +207,7 @@ pub async fn update_slide_group(
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
-    check_slide_group_ownership(&session, &txn, hive_client, id).await?;
+    check_slide_group_ownership(&session.populate(hive_client).await?, &txn, id).await?;
     get_non_archived_slide_group(id, &txn).await?;
 
     entity::slide_group::ActiveModel {
@@ -238,7 +237,7 @@ pub async fn publish_slide_group(
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
-    check_slide_group_ownership(&session, &txn, hive_client, id).await?;
+    check_slide_group_ownership(&session.populate(hive_client).await?, &txn, id).await?;
     get_non_archived_slide_group(id, &txn).await?;
 
     entity::slide_group::ActiveModel {
@@ -264,7 +263,7 @@ pub async fn archive_slide_group(
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
-    check_slide_group_ownership(&session, &txn, hive_client, id).await?;
+    check_slide_group_ownership(&session.populate(hive_client).await?, &txn, id).await?;
     get_non_archived_slide_group(id, &txn).await?;
 
     let now = chrono::Utc::now().naive_utc();
@@ -293,7 +292,7 @@ pub async fn update_slide_group_owner(
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
-    check_slide_group_ownership(&session, &txn, hive_client, id).await?;
+    check_slide_group_ownership(&session.populate(hive_client).await?, &txn, id).await?;
 
     let result = entity::slide_group::ActiveModel {
         id: Set(id),
