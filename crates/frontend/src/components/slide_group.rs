@@ -49,14 +49,21 @@ pub fn SlideGroupOverview(#[prop(into)] slide_group: Signal<SlideGroupDto>) -> i
                                     OwnerDto::Group(group) => format!("Only members of {} can edit this slide group", group.name),
                                 }
                             >
-                                <a
-                                    href=format!("/slides/{}", group.id)
-                                    class="btn btn-primary"
-                                    class:btn-disabled=!is_owner()
-                                >
-                                    "View Details"
-                                    <Icon icon=i::MdiArrowRight width="1.5em" height="1.5em" />
-                                </a>
+                                <Show when=move || is_owner()>
+                                    <a
+                                        href=format!("/slides/{}", group.id)
+                                        class="btn btn-primary"
+                                    >
+                                        "View Details"
+                                        <Icon icon=i::MdiArrowRight width="1.5em" height="1.5em" />
+                                    </a>
+                                </Show>
+                                <Show when=move || !is_owner()>
+                                    <button class="btn btn-primary btn-disabled" disabled>
+                                        "View Details"
+                                        <Icon icon=i::MdiArrowRight width="1.5em" height="1.5em" />
+                                    </button>
+                                </Show>
                             </div>
                         </div>
                     </div>
