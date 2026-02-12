@@ -60,7 +60,7 @@ impl AppError {
     pub fn status(&self) -> Status {
         match self {
             AppError::Unauthenticated => Status::Unauthorized,
-            AppError::Unauthorized => Status::Unauthorized,
+            AppError::Unauthorized => Status::Forbidden,
             AppError::FileTooBig(_) => Status::PayloadTooLarge,
             AppError::ScreenNotFound => Status::NotFound,
             AppError::SlideGroupNotFound => Status::NotFound,
