@@ -33,7 +33,12 @@ pub fn SlideGroupOverview(#[prop(into)] slide_group: Signal<SlideGroupDto>) -> i
                 view! {
                     <div class="flex flex-wrap-reverse items-center justify-between gap-2 mb-6">
                         <h1 class="card-title text-4xl">
-                            <a href=format!("/slides/{}", group.id)>{group.title}</a>
+                            <Show when=move || is_owner()>
+                                <a href=format!("/slides/{}", group.id)>{slide_group.get().title}</a>
+                            </Show>
+                            <Show when=move || !is_owner()>
+                                {slide_group.get().title}
+                            </Show>
                         </h1>
                         <div class="text-right grow">
                             <div
