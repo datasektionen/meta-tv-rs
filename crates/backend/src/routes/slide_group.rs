@@ -302,13 +302,13 @@ pub async fn update_slide_group_owner(
     .update(&txn)
     .await;
 
-    txn.commit().await?;
-
     match result {
         Ok(_) => {}
         Err(DbErr::RecordNotUpdated) => return Err(AppError::SlideGroupNotFound),
         Err(error) => return Err(error.into()),
     };
+
+    txn.commit().await?;
 
     Ok(Status::NoContent)
 }
