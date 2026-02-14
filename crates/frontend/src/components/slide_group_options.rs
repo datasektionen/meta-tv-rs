@@ -286,20 +286,44 @@ fn SlideGroupViewOptions(
             .unwrap_or(false)
     };
 
+    let is_archived = move || slide_group.get().archive_date.is_some();
+
+    let editable = Signal::derive(move || is_owner() && !is_archived());
+
     view! {
         <div>
             {move || {
-                view! {
-                    <DeleteDialog
-                        slide_group_id=slide_group.get().id
-                        open=is_delete_dialog_open
-                        set_editing_options=set_editing_options
-                    />
-                    <TransferOwnershipDialog
-                        slide_group=slide_group
-                        open=is_transfer_ownership_dialog_open
-                    />
-                    <Show when=move || !slide_group.read().archive_date.is_some()>
+                if is_archived() {
+                    view! {
+                        <Alert icon=i::MdiDeleteAlert class="alert-error">
+                            "These slides were deleted on "
+                            {move || fmt_datetime_opt(
+                                slide_group.get().archive_date.as_ref(),
+                                "None",
+                            )}
+                            " and can't be edited further"
+                        </Alert>
+                    }
+                        .into_any()
+                } else if !is_owner() {
+                    view! {
+                        <Alert icon=i::MdiAlertCircle class="alert-error">
+                            "You don't have permission to edit this slide group. Only the owner(s) "
+                            "can edit it."
+                        </Alert>
+                    }
+                        .into_any()
+                } else {
+                    view! {
+                        <DeleteDialog
+                            slide_group_id=slide_group.get().id
+                            open=is_delete_dialog_open
+                            set_editing_options=set_editing_options
+                        />
+                        <TransferOwnershipDialog
+                            slide_group=slide_group
+                            open=is_transfer_ownership_dialog_open
+                        />
                         <menu class="flex flex-row gap-2">
                             <li>
                                 <button on:click=move |_| set_editing_options.set(true) class="btn">
@@ -338,24 +362,14 @@ fn SlideGroupViewOptions(
                                 </button>
                             </li>
                         </menu>
-                    </Show>
+                    }
+                        .into_any()
                 }
-                    .into_any()
             }}
             {move || {
                 let group = slide_group.get();
                 view! {
                     <h1 class="text-6xl mb-6">{group.title}</h1>
-                    <Show when=move || group.archive_date.is_some()>
-                        <Alert icon=i::MdiDeleteAlert class="alert-error">
-                            "These slides have been deleted on "
-                            {move || fmt_datetime_opt(group.archive_date.as_ref(), "None")}
-                            " and can't be edited further"
-                        </Alert>
-                    </Show>
-                    <Show when=move || !is_owner()>
-                        <NotOwnerAlert />
-                    </Show>
                     <div class="grid grid-cols-3 gap-4">
                         {move || match group.created_by.clone() {
                             common::dtos::OwnerDto::User(username) => {
@@ -406,7 +420,7 @@ fn SlideGroupViewOptions(
                     .into_any()
             }}
 
-            <SlideList slide_group=slide_group editable=true />
+            <SlideList slide_group=slide_group editable=editable />
         </div>
     }
     .into_any()
