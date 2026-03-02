@@ -1,27 +1,43 @@
 use common::dtos::{CreateSlideDto, MoveSlidesDto};
-use rocket::{http::Status, serde::json::Json};
+use rocket::{http::Status, serde::json::Json, State};
 use sea_orm::{ActiveModelTrait, EntityTrait, Set, TransactionTrait};
 use sea_orm_rocket::Connection;
 
-use crate::{auth::Session, error::AppError, pool::Db};
+use crate::{
+    auth::{hive::HiveClient, Session},
+    error::AppError,
+    pool::Db,
+    routes::slide_group,
+};
 
 use super::{build_created_response, CreatedResponse};
 
 #[post("/slide", data = "<slide>")]
 pub async fn create_slide(
-    _session: Session, // for access control only
+    session: Session,
+    hive_client: &State<HiveClient>,
     conn: Connection<'_, Db>,
     slide: Json<CreateSlideDto>,
 ) -> Result<CreatedResponse, AppError> {
     let db = conn.into_inner();
+    let txn = db.begin().await?;
+
+    slide_group::check_slide_group_ownership(
+        &session.populate(hive_client).await?,
+        &txn,
+        slide.slide_group,
+    )
+    .await?;
 
     let res = entity::slide::ActiveModel {
         position: Set(slide.position),
         group: Set(slide.slide_group),
         ..Default::default()
     }
-    .insert(db)
+    .insert(&txn)
     .await?;
+
+    txn.commit().await?;
 
     // NOTE: non-existent route
     Ok(build_created_response("/api/slide", res.id))
@@ -29,18 +45,23 @@ pub async fn create_slide(
 
 #[post("/slide/bulk-move", data = "<positions>")]
 pub async fn bulk_move_slides(
-    _session: Session, // for access control only
+    session: Session,
+    hive_client: &State<HiveClient>,
     conn: Connection<'_, Db>,
     positions: Json<MoveSlidesDto>,
 ) -> Result<Status, AppError> {
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
+    let user_info = session.populate(hive_client).await?;
+
     for (&slide_id, &new_position) in &positions.new_positions {
         let slide = entity::slide::Entity::find_by_id(slide_id)
             .one(&txn)
             .await?
             .ok_or(AppError::SlideNotFound)?;
+
+        slide_group::check_slide_group_ownership(&user_info, &txn, slide.group).await?;
 
         if slide.archive_date.is_some() {
             return Err(AppError::SlideArchived);
@@ -64,9 +85,10 @@ pub async fn bulk_move_slides(
 
 #[delete("/slide/<id>")]
 pub async fn delete_slide(
-    _session: Session,
-    id: i32,
+    session: Session,
+    hive_client: &State<HiveClient>,
     conn: Connection<'_, Db>,
+    id: i32,
 ) -> Result<Status, AppError> {
     let db = conn.into_inner();
     let txn = db.begin().await?;
@@ -77,6 +99,13 @@ pub async fn delete_slide(
         .one(&txn)
         .await?
         .ok_or(AppError::SlideNotFound)?;
+
+    slide_group::check_slide_group_ownership(
+        &session.populate(hive_client).await?,
+        &txn,
+        slide.group,
+    )
+    .await?;
 
     if slide.archive_date.is_some() {
         return Err(AppError::SlideArchived);

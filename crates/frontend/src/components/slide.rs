@@ -8,7 +8,10 @@ use crate::{
 };
 
 #[component]
-pub fn SlideList(slide_group: Signal<SlideGroupDto>, editable: bool) -> impl IntoView {
+pub fn SlideList(
+    slide_group: Signal<SlideGroupDto>,
+    #[prop(into)] editable: Signal<bool>,
+) -> impl IntoView {
     let group_id = move || slide_group.read().id;
     let max_position = move || {
         slide_group
@@ -32,11 +35,11 @@ pub fn SlideList(slide_group: Signal<SlideGroupDto>, editable: bool) -> impl Int
                 }
                     .into_any()
             }
-            children=move |slide| { view! { <SlideRow slide=slide slide_group=slide_group editable=editable /> }.into_any() }
+            children=move |slide| { view! { <SlideRow slide=slide editable=editable /> }.into_any() }
         />
         {move || {
             view! {
-                <Show when=move || !slide_group.get().archive_date.is_some()>
+                <Show when=move || editable.get()>
                     <AddSlideButton
                         group_id=Signal::derive(group_id)
                         max_position=Signal::derive(max_position)
@@ -87,11 +90,7 @@ fn AddSlideButton(#[prop(into)] group_id: Signal<i32>, max_position: Signal<i32>
 }
 
 #[component]
-fn SlideRow(
-    #[prop(into)] slide: Signal<SlideDto>,
-    slide_group: Signal<SlideGroupDto>,
-    editable: bool,
-) -> impl IntoView {
+fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, editable: Signal<bool>) -> impl IntoView {
     let screens = use_context::<ScreenContext>()
         .expect("expected screen context")
         .screens;
@@ -128,7 +127,7 @@ fn SlideRow(
             </div>
             {move || {
                 view! {
-                    <Show when=move || !slide_group.get().archive_date.is_some() && editable>
+                    <Show when=move || editable.get()>
                         <div class="flex flex-row justify-center md:justify-start">
                             <button class="btn btn-soft btn-choose btn-error my-3" on:click=move |_| is_delete_dialog_open.set(true)>
                                 Delete Slide

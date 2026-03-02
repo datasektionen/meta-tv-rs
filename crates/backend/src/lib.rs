@@ -138,7 +138,6 @@ pub(crate) fn rocket() -> Rocket<Build> {
                 routes::auth::logout,
                 routes::auth::oidc_callback,
                 routes::auth::user_info,
-                routes::auth::user_memberships,
             ],
         )
         .register("/auth", catchers![routes::auth::not_logged_in])

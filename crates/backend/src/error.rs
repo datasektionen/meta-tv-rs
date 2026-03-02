@@ -16,6 +16,8 @@ use crate::auth::oidc::OidcAuthenticationError;
 pub enum AppError {
     #[error("you must login to perform this action")]
     Unauthenticated,
+    #[error("you don't have permission to perform this action")]
+    Unauthorized,
     #[error("uploaded file exceeds maximum allowed size (max is {0} bytes)")]
     FileTooBig(u64),
     #[error("screen not found")]
@@ -58,6 +60,7 @@ impl AppError {
     pub fn status(&self) -> Status {
         match self {
             AppError::Unauthenticated => Status::Unauthorized,
+            AppError::Unauthorized => Status::Forbidden,
             AppError::FileTooBig(_) => Status::PayloadTooLarge,
             AppError::ScreenNotFound => Status::NotFound,
             AppError::SlideGroupNotFound => Status::NotFound,

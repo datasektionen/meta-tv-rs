@@ -1,11 +1,11 @@
 use chrono::Utc;
-use common::dtos::{CreateSlideGroupDto, GroupDto, OwnerDto, SlideGroupDto};
+use common::dtos::{CreateSlideGroupDto, GroupDto, OwnerDto, SlideGroupDto, UserInfoDto};
 use icondata as i;
 use leptos::{html, logging, prelude::*};
 use leptos_icons::Icon;
 
 use crate::{
-    api,
+    api::{self, AppError},
     components::{alert::Alert, dialog::Dialog, error::ErrorList, slide::SlideList},
     context::SlideGroupOptionsContext,
     utils::{
@@ -19,7 +19,6 @@ use crate::{
 #[component]
 pub fn SlideGroupOptions(
     #[prop(into)] slide_group: Signal<SlideGroupDto>,
-    #[prop(into)] user_memberships: Signal<Vec<GroupDto>>,
     is_editing_options: ReadSignal<bool>,
     set_editing_options: WriteSignal<bool>,
 ) -> impl IntoView {
@@ -30,7 +29,6 @@ pub fn SlideGroupOptions(
                 view! {
                     <SlideGroupViewOptions
                         slide_group=slide_group
-                        user_memberships=user_memberships
                         set_editing_options=set_editing_options
                     />
                 }
@@ -78,12 +76,25 @@ fn SlideGroupEditOptions(
 
     let is_delete_dialog_open = RwSignal::new(false);
 
+    let user_info = use_context::<LocalResource<Result<UserInfoDto, AppError>>>()
+        .expect("User info has been provided");
+    let is_owner = move || {
+        user_info
+            .get()
+            .and_then(|info| info.ok())
+            .map(|info| slide_group.get().created_by.is_owner(&info))
+            .unwrap_or(false)
+    };
+
     view! {
         <DeleteDialog
             slide_group_id=slide_group.get().id
             open=is_delete_dialog_open
             set_editing_options=set_editing_options
         />
+        <Show when=move || !is_owner()>
+            <NotOwnerAlert />
+        </Show>
         <form on:submit=move |ev| {
             ev.prevent_default();
             submit_action
@@ -260,27 +271,59 @@ fn SlideGroupEditOptions(
 #[component]
 fn SlideGroupViewOptions(
     slide_group: Signal<SlideGroupDto>,
-    user_memberships: Signal<Vec<GroupDto>>,
     set_editing_options: WriteSignal<bool>,
 ) -> impl IntoView {
     let is_delete_dialog_open = RwSignal::new(false);
     let is_transfer_ownership_dialog_open = RwSignal::new(false);
 
+    let user_info = use_context::<LocalResource<Result<UserInfoDto, AppError>>>()
+        .expect("User info has been provided");
+    let is_owner = move || {
+        user_info
+            .get()
+            .and_then(|info| info.ok())
+            .map(|info| slide_group.get().created_by.is_owner(&info))
+            .unwrap_or(false)
+    };
+
+    let is_archived = move || slide_group.get().archive_date.is_some();
+
+    let editable = Signal::derive(move || is_owner() && !is_archived());
+
     view! {
         <div>
             {move || {
-                view! {
-                    <DeleteDialog
-                        slide_group_id=slide_group.get().id
-                        open=is_delete_dialog_open
-                        set_editing_options=set_editing_options
-                    />
-                    <TransferOwnershipDialog
-                        slide_group=slide_group
-                        user_memberships=user_memberships
-                        open=is_transfer_ownership_dialog_open
-                    />
-                    <Show when=move || !slide_group.read().archive_date.is_some()>
+                if is_archived() {
+                    view! {
+                        <Alert icon=i::MdiDeleteAlert class="alert-error">
+                            "These slides were deleted on "
+                            {move || fmt_datetime_opt(
+                                slide_group.get().archive_date.as_ref(),
+                                "None",
+                            )}
+                            " and can't be edited further"
+                        </Alert>
+                    }
+                        .into_any()
+                } else if !is_owner() {
+                    view! {
+                        <Alert icon=i::MdiAlertCircle class="alert-error">
+                            "You don't have permission to edit this slide group. Only the owner(s) "
+                            "can edit it."
+                        </Alert>
+                    }
+                        .into_any()
+                } else {
+                    view! {
+                        <DeleteDialog
+                            slide_group_id=slide_group.get().id
+                            open=is_delete_dialog_open
+                            set_editing_options=set_editing_options
+                        />
+                        <TransferOwnershipDialog
+                            slide_group=slide_group
+                            open=is_transfer_ownership_dialog_open
+                        />
                         <menu class="flex flex-row gap-2">
                             <li>
                                 <button on:click=move |_| set_editing_options.set(true) class="btn">
@@ -319,21 +362,14 @@ fn SlideGroupViewOptions(
                                 </button>
                             </li>
                         </menu>
-                    </Show>
+                    }
+                        .into_any()
                 }
-                    .into_any()
             }}
             {move || {
                 let group = slide_group.get();
                 view! {
                     <h1 class="text-6xl mb-6">{group.title}</h1>
-                    <Show when=move || group.archive_date.is_some()>
-                        <Alert icon=i::MdiDeleteAlert class="bg-red-300">
-                            "These slides have been deleted on "
-                            {move || fmt_datetime_opt(group.archive_date.as_ref(), "None")}
-                            " and can't be edited further"
-                        </Alert>
-                    </Show>
                     <div class="grid grid-cols-3 gap-4">
                         {move || match group.created_by.clone() {
                             common::dtos::OwnerDto::User(username) => {
@@ -384,8 +420,18 @@ fn SlideGroupViewOptions(
                     .into_any()
             }}
 
-            <SlideList slide_group=slide_group editable=true />
+            <SlideList slide_group=slide_group editable=editable />
         </div>
+    }
+    .into_any()
+}
+
+#[component]
+pub fn NotOwnerAlert() -> impl IntoView {
+    view! {
+        <Alert icon=i::MdiAlertCircle class="alert-error">
+            "You don't have permission to edit this slide group. Only the owner(s) can edit it."
+        </Alert>
     }
     .into_any()
 }
@@ -438,9 +484,19 @@ pub fn DeleteDialog(
 #[component]
 fn TransferOwnershipDialog(
     #[prop()] slide_group: Signal<SlideGroupDto>,
-    #[prop()] user_memberships: Signal<Vec<GroupDto>>,
     open: RwSignal<bool>,
 ) -> impl IntoView {
+    let user_info = use_context::<LocalResource<Result<UserInfoDto, AppError>>>()
+        .expect("User info has been provided");
+    let user_memberships = Memo::new(move |_| {
+        user_info
+            .get()
+            .and_then(|info| info.map(|info| info.memberships).ok())
+            .unwrap_or_default()
+            .into_iter()
+            .map(GroupDto::from)
+            .collect::<Vec<_>>()
+    });
     logging::log!("memberships: {:?}", user_memberships.get());
     let action = Action::new_local(move |owner: &GroupDto| {
         logging::log!("set owner to {:?}", owner);

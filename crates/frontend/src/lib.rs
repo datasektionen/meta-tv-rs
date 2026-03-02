@@ -22,6 +22,8 @@ pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
 
+    provide_context(LocalResource::new(async move || api::user_info().await));
+
     view! {
         <Html attr:lang="en" attr:dir="ltr" />
 

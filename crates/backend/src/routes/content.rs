@@ -6,7 +6,13 @@ use sea_orm::{
 };
 use sea_orm_rocket::Connection;
 
-use crate::{auth::Session, error::AppError, files::Files, pool::Db};
+use crate::{
+    auth::{hive::HiveClient, Session},
+    error::AppError,
+    files::Files,
+    pool::Db,
+    routes::slide_group,
+};
 
 use super::{build_created_response, CreatedResponse};
 
@@ -18,7 +24,8 @@ pub(crate) struct Upload<'r> {
 
 #[post("/content", data = "<upload>")]
 pub async fn create_content(
-    _session: Session, // for access control only
+    session: Session,
+    hive_client: &State<HiveClient>,
     conn: Connection<'_, Db>,
     files: &State<Files>,
     mut upload: Form<Upload<'_>>,
@@ -32,17 +39,27 @@ pub async fn create_content(
         .await?
         .ok_or_else(|| AppError::ScreenNotFound)?;
 
-    // ensure slide exists and is not archived (deleted)
-    entity::slide::Entity::find_by_id(upload.data.slide)
+    // ensure slide exists and is not archived (deleted), and that the user owns the associated
+    // slide group.
+    let slide_group_id = entity::slide::Entity::find_by_id(upload.data.slide)
         .join(
             JoinType::LeftJoin,
             entity::slide::Relation::SlideGroup.def(),
         )
         .filter(entity::slide::Column::ArchiveDate.is_null())
         .filter(entity::slide_group::Column::ArchiveDate.is_null())
+        .select_only()
+        .column(entity::slide::Column::Group)
+        .into_tuple::<i32>()
         .one(&txn)
         .await?
         .ok_or_else(|| AppError::SlideNotFound)?;
+    slide_group::check_slide_group_ownership(
+        &session.populate(hive_client).await?,
+        &txn,
+        slide_group_id,
+    )
+    .await?;
 
     // archive (delete) content already on this screen (if any)
     entity::content::Entity::update_many()

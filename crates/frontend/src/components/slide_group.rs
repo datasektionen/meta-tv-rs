@@ -1,9 +1,10 @@
-use common::dtos::SlideGroupDto;
+use common::dtos::{OwnerDto, SlideGroupDto, UserInfoDto};
 use icondata as i;
 use leptos::prelude::*;
 use leptos_icons::Icon;
 
 use crate::{
+    api::AppError,
     components::{alert::Alert, slide::SlideList},
     utils::{
         bool::fmt_if,
@@ -16,6 +17,15 @@ use crate::{
 /// Should not include a lot of data.
 #[component]
 pub fn SlideGroupOverview(#[prop(into)] slide_group: Signal<SlideGroupDto>) -> impl IntoView {
+    let user_info = use_context::<LocalResource<Result<UserInfoDto, AppError>>>()
+        .expect("User info has been provided");
+    let is_owner = move || {
+        user_info
+            .get()
+            .and_then(|info| info.ok())
+            .map(|info| slide_group.get().created_by.is_owner(&info))
+            .unwrap_or(false)
+    };
     view! {
         <div>
             {move || {
@@ -23,17 +33,42 @@ pub fn SlideGroupOverview(#[prop(into)] slide_group: Signal<SlideGroupDto>) -> i
                 view! {
                     <div class="flex flex-wrap-reverse items-center justify-between gap-2 mb-6">
                         <h1 class="card-title text-4xl">
-                            <a href=format!("/slides/{}", group.id)>{group.title}</a>
+                            <Show when=move || is_owner()>
+                                <a href=format!("/slides/{}", group.id)>{slide_group.get().title}</a>
+                            </Show>
+                            <Show when=move || !is_owner()>
+                                {slide_group.get().title}
+                            </Show>
                         </h1>
                         <div class="text-right grow">
-                            <a href=format!("/slides/{}", group.id) class="btn btn-primary">
-                                "View Details"
-                                <Icon icon=i::MdiArrowRight width="1.5em" height="1.5em" />
-                            </a>
+                            <div
+                                class="tooltip-error"
+                                class:tooltip=!is_owner()
+                                data-tip=match &slide_group.get().created_by {
+                                    OwnerDto::User(username) => format!("Only {} can edit this slide group", username),
+                                    OwnerDto::Group(group) => format!("Only members of {} can edit this slide group", group.name),
+                                }
+                            >
+                                <Show when=move || is_owner()>
+                                    <a
+                                        href=format!("/slides/{}", group.id)
+                                        class="btn btn-primary"
+                                    >
+                                        "View Details"
+                                        <Icon icon=i::MdiArrowRight width="1.5em" height="1.5em" />
+                                    </a>
+                                </Show>
+                                <Show when=move || !is_owner()>
+                                    <button class="btn btn-primary btn-disabled" disabled>
+                                        "View Details"
+                                        <Icon icon=i::MdiArrowRight width="1.5em" height="1.5em" />
+                                    </button>
+                                </Show>
+                            </div>
                         </div>
                     </div>
                     <Show when=move || group.archive_date.is_some()>
-                        <Alert icon=i::MdiDeleteAlert class="bg-red-300">
+                        <Alert icon=i::MdiDeleteAlert class="alert-error">
                             "These slides have been deleted on "
                             {move || fmt_datetime_opt(group.archive_date.as_ref(), "None")}
                             " and can't be edited further"
