@@ -118,7 +118,7 @@ fn SlideGroupEditOptions(
                           <div class="mt-2">
                             <input
                                 name="title"
-                                class="input block w-full rounded-md px-3 py-1.5 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                                class="input"
                                 type="text"
                                 bind:value=title
                             />
@@ -187,7 +187,7 @@ fn SlideGroupEditOptions(
                                     <div class="flex w-full items-center">
                                         <div class="grid w-full grid-cols-1">
                                             <input
-                                                class="col-start-1 row-start-1 input border disabled:bg-gray-50 disabled:text-gray-500"
+                                                class="col-start-1 row-start-1 input"
                                                 type="datetime-local"
                                                 step=1
                                                 prop:value=move || { datetime_to_input(&start_date.get()) }
@@ -213,7 +213,7 @@ fn SlideGroupEditOptions(
                                                 <div class="flex w-full items-center">
                                                     <div class="grid w-full grid-cols-1">
                                                         <input
-                                                            class="col-start-1 row-start-1 input border disabled:bg-gray-50 disabled:text-gray-500"
+                                                            class="col-start-1 row-start-1 input"
                                                             type="datetime-local"
                                                             step=1
                                                             prop:value=move || { datetime_to_input(&end_date_value) }
