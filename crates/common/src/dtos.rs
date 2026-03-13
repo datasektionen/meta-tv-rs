@@ -123,6 +123,8 @@ impl From<TaggedGroupDto> for GroupDto {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CreateSlideGroupDto {
     pub title: String,
+    // The owner of the new slide group. None signifies the currently logged in user.
+    pub owner: Option<GroupDto>,
     pub priority: i32,
     pub hidden: bool,
     pub start_date: DateTime<Utc>,

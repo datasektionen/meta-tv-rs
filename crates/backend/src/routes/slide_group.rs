@@ -178,12 +178,17 @@ pub async fn create_slide_group(
     slide_group: Json<CreateSlideGroupDto>,
 ) -> Result<CreatedResponse, AppError> {
     let db = conn.into_inner();
+    
+    let owner = match &slide_group.owner {
+        None => OwnerDto::User(session.username),
+        Some(group) => OwnerDto::Group(group.clone()),
+    };
 
     let group = entity::slide_group::ActiveModel {
         title: Set(slide_group.title.clone()),
         priority: Set(slide_group.priority),
         hidden: Set(slide_group.hidden),
-        created_by: Set(session.username),
+        created_by: Set(owner.id()),
         start_date: Set(slide_group.start_date.naive_utc()),
         end_date: Set(slide_group.end_date.as_ref().map(|d| d.naive_utc())),
         archive_date: Set(None),
@@ -445,6 +450,7 @@ mod tests {
             .put("/api/slide-group/1")
             .json(&CreateSlideGroupDto {
                 title: "Lorem Ipsum".to_string(),
+                owner: None,
                 priority: 1,
                 hidden: false,
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
@@ -482,6 +488,7 @@ mod tests {
             .put("/api/slide-group/1")
             .json(&CreateSlideGroupDto {
                 title: "Lorem Ipsum".to_string(),
+                owner: None,
                 priority: 1,
                 hidden: false,
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
@@ -506,6 +513,7 @@ mod tests {
             .put("/api/slide-group/1")
             .json(&CreateSlideGroupDto {
                 title: "Lorem Ipsum".to_string(),
+                owner: None,
                 priority: 1,
                 hidden: false,
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),

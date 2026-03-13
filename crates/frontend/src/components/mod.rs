@@ -7,5 +7,6 @@ pub mod layout;
 pub mod slide;
 pub mod slide_group;
 pub mod slide_group_options;
+pub mod start_end_date_fieldset;
 pub mod topbar;
 pub mod utils;
