@@ -1,7 +1,7 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use chrono_tz::{Europe, Tz};
 
-const DATE_FORMAT: &str = "%Y-%m-%dT%H:%M:%S";
+const DATE_FORMAT: &str = "%Y-%m-%dT%H:%M";
 
 const TIME_ZONE: Tz = Europe::Stockholm;
 

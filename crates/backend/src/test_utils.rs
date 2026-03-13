@@ -85,6 +85,7 @@ pub fn util_create_slide_group(client: &TestClient) {
         .post("/api/slide-group")
         .json(&CreateSlideGroupDto {
             title: "Lorem Ipsum".to_string(),
+            owner: None,
             priority: 0,
             hidden: false,
             start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),

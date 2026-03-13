@@ -100,6 +100,7 @@ fn SlideGroupEditOptions(
             submit_action
                 .dispatch(CreateSlideGroupDto {
                     title: title.read().to_string(),
+                    owner: None,
                     priority: *priority.read(),
                     hidden: *hidden.read(),
                     start_date: *start_date.read(),
@@ -189,7 +190,7 @@ fn SlideGroupEditOptions(
                                             <input
                                                 class="col-start-1 row-start-1 input"
                                                 type="datetime-local"
-                                                step=1
+                                                step=60
                                                 prop:value=move || { datetime_to_input(&start_date.get()) }
                                                 on:change:target=move |ev| {
                                                     if let Some(dt) = input_to_datetime(&ev.target().value()) {
@@ -215,7 +216,7 @@ fn SlideGroupEditOptions(
                                                         <input
                                                             class="col-start-1 row-start-1 input"
                                                             type="datetime-local"
-                                                            step=1
+                                                            step=60
                                                             prop:value=move || { datetime_to_input(&end_date_value) }
                                                             on:change:target=move |ev| {
                                                                 if let Some(dt) = input_to_datetime(&ev.target().value()) {
