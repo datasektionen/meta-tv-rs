@@ -10,6 +10,8 @@ pub fn StartEndDateFieldset(
     start_date: RwSignal<DateTime<Utc>>,
     end_date: RwSignal<(bool, DateTime<Utc>)>,
     disable_end_date_removal_reason: Option<&'static str>,
+    #[prop(into, default = false.into())]
+    disabled: Signal<bool>
 ) -> impl IntoView {
     let end_date_text = move || {
         if end_date.get().0 {
@@ -19,7 +21,7 @@ pub fn StartEndDateFieldset(
         }
     };
     view! {
-        <fieldset>
+        <fieldset disabled=disabled>
             <legend class="text-base/7 font-semibold">Active Timespan</legend>
             <div class="grid grid-cols-[repeat(auto-fit,_minmax(14rem,_1fr))] gap-x-8 gap-y-4 mt-4">
                 <div>
