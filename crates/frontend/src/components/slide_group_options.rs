@@ -6,11 +6,14 @@ use leptos_icons::Icon;
 
 use crate::{
     api::{self, AppError},
-    components::{alert::Alert, dialog::Dialog, error::ErrorList, slide::SlideList},
+    components::{
+        alert::Alert, dialog::Dialog, error::ErrorList, slide::SlideList,
+        start_end_date_fieldset::StartEndDateFieldset,
+    },
     context::SlideGroupOptionsContext,
     utils::{
         bool::fmt_if,
-        datetime::{datetime_to_input, fmt_datetime, fmt_datetime_opt, input_to_datetime},
+        datetime::{fmt_datetime, fmt_datetime_opt},
     },
 };
 
@@ -53,8 +56,14 @@ fn SlideGroupEditOptions(
     let priority = RwSignal::new(slide_group.get_untracked().priority);
     let hidden = RwSignal::new(slide_group.get_untracked().hidden);
     let start_date = RwSignal::new(slide_group.get_untracked().start_date);
-    let end_date = RwSignal::new(slide_group.get_untracked().end_date);
-
+    let end_date = RwSignal::new(
+        slide_group
+            .get_untracked()
+            .end_date
+            .map(|date| (true, date))
+            .unwrap_or_else(|| (false, Utc::now())),
+    );
+    
     let submit_action = Action::new_local(move |data: &CreateSlideGroupDto| {
         let id = slide_group.get().id;
         let data = data.clone();
@@ -104,10 +113,13 @@ fn SlideGroupEditOptions(
                     priority: *priority.read(),
                     hidden: *hidden.read(),
                     start_date: *start_date.read(),
-                    end_date: *end_date.read(),
+                    end_date: match end_date.get() {
+                        (true, date) => Some(date),
+                        (false, _) => None,
+                    },
                 });
         }>
-            <div class="space-y-12">
+            <div class="space-y-12 max-w-max m-auto">
                 <div class="border-b border-gray-100/10 pb-12">
                     <fieldset disabled=is_submitting>
                         <h2 class="text-base/7 font-semibold">General</h2>
@@ -179,88 +191,22 @@ fn SlideGroupEditOptions(
                     </fieldset>
                 </div>
                 <div class="border-b border-gray-900/10 pb-12">
-                    <fieldset disabled=is_submitting>
-                        <h2 class="text-base/7 font-semibold">Active Timespan</h2>
-                        <div class="col-span-full mt-6">     
-                            <label for="start-date" class="block text-sm/6 font-medium">Start</label>
-                            <div class="mt-3 space-y-6">
-                                <div class="flex gap-3">
-                                    <div class="flex w-full items-center">
-                                        <div class="grid w-full grid-cols-1">
-                                            <input
-                                                class="col-start-1 row-start-1 input"
-                                                type="datetime-local"
-                                                step=60
-                                                prop:value=move || { datetime_to_input(&start_date.get()) }
-                                                on:change:target=move |ev| {
-                                                    if let Some(dt) = input_to_datetime(&ev.target().value()) {
-                                                        start_date.set(dt);
-                                                    }
-                                                }
-                                            />
-                                            <p class="mt-3 text-sm/6 text-gray-600">Dates are in Swedish time</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {move || match end_date.get() {
-                            Some(end_date_value) => {
-                                view! {
-                                    <div class="col-span-full mt-6">     
-                                        <label for="end-date" class="block text-sm/6 font-medium">End</label>
-                                        <div class="mt-3 space-y-6">
-                                            <div class="flex gap-3">
-                                                <div class="flex w-full items-center">
-                                                    <div class="grid w-full grid-cols-1">
-                                                        <input
-                                                            class="col-start-1 row-start-1 input"
-                                                            type="datetime-local"
-                                                            step=60
-                                                            prop:value=move || { datetime_to_input(&end_date_value) }
-                                                            on:change:target=move |ev| {
-                                                                if let Some(dt) = input_to_datetime(&ev.target().value()) {
-                                                                    end_date.set(Some(dt));
-                                                                }
-                                                            }
-                                                        />
-                                                        <p class="mt-3 text-sm/6 text-gray-600">Dates are in Swedish time</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button class="btn" type="button" on:click=move |_| { end_date.set(None) }>
-                                        Remove end date
-                                    </button>
-                                }
-                                    .into_any()
-                            }
-                            None => {
-
-                                view! {
-                                    <button
-                                        class="btn"
-                                        type="button"
-                                        on:click=move |_| { end_date.set(Some(Utc::now())) }
-                                    >
-                                        Add end date
-                                    </button>
-                                }
-                                    .into_any()
-                            }
-                        }}
-                        <div class="mt-6 flex gap-6">
-                            <button type="submit" class="btn border disabled:text-gray-500">
-                                Save
-                            </button>
-                            <button class="btn" type="button" on:click=move |_| set_editing_options.set(false)>
-                                Cancel
-                            </button>
-                            <button class="btn btn-soft btn-error" type="button" on:click=move |_| is_delete_dialog_open.set(true)>
-                                Delete Group
-                            </button>
-                        </div>
+                    <StartEndDateFieldset
+                        start_date=start_date
+                        end_date=end_date
+                        disable_end_date_removal_reason=None
+                        disabled=is_submitting
+                    />
+                    <fieldset class="mt-6 flex gap-6" disabled=is_submitting>
+                        <button type="submit" class="btn border disabled:text-gray-500">
+                            Save
+                        </button>
+                        <button class="btn" type="button" on:click=move |_| set_editing_options.set(false)>
+                            Cancel
+                        </button>
+                        <button class="btn btn-soft btn-error" type="button" on:click=move |_| is_delete_dialog_open.set(true)>
+                            Delete Group
+                        </button>
                     </fieldset>
                 </div>
             </div>
