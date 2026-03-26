@@ -1,20 +1,11 @@
-use common::dtos::CreateContentDto;
-use rocket::{data::Capped, form::Form, fs::TempFile, serde::json::Json, State};
-use sea_orm::{
-    sqlx::types::chrono::Utc, ActiveModelTrait, ColumnTrait, EntityTrait, JoinType, QueryFilter,
-    QuerySelect, RelationTrait, Set, TransactionTrait,
+use common::dtos::{ContentDto, CreateContentDto};
+use rocket::{
+    data::Capped, form::Form, fs::TempFile, response::status::Created, serde::json::Json, State,
 };
+use sea_orm::{ActiveModelTrait, EntityTrait, Set, TransactionTrait};
 use sea_orm_rocket::Connection;
 
-use crate::{
-    auth::{hive::HiveClient, Session},
-    error::AppError,
-    files::Files,
-    pool::Db,
-    routes::slide_group,
-};
-
-use super::{build_created_response, CreatedResponse};
+use crate::{auth::Session, error::AppError, files::Files, pool::Db};
 
 #[derive(FromForm)]
 pub(crate) struct Upload<'r> {
@@ -24,12 +15,11 @@ pub(crate) struct Upload<'r> {
 
 #[post("/content", data = "<upload>")]
 pub async fn create_content(
-    session: Session,
-    hive_client: &State<HiveClient>,
+    _session: Session,
     conn: Connection<'_, Db>,
     files: &State<Files>,
     mut upload: Form<Upload<'_>>,
-) -> Result<CreatedResponse, AppError> {
+) -> Result<Created<Json<ContentDto>>, AppError> {
     let db = conn.into_inner();
     let txn = db.begin().await?;
 
@@ -39,44 +29,10 @@ pub async fn create_content(
         .await?
         .ok_or_else(|| AppError::ScreenNotFound)?;
 
-    // ensure slide exists and is not archived (deleted), and that the user owns the associated
-    // slide group.
-    let slide_group_id = entity::slide::Entity::find_by_id(upload.data.slide)
-        .join(
-            JoinType::LeftJoin,
-            entity::slide::Relation::SlideGroup.def(),
-        )
-        .filter(entity::slide::Column::ArchiveDate.is_null())
-        .filter(entity::slide_group::Column::ArchiveDate.is_null())
-        .select_only()
-        .column(entity::slide::Column::Group)
-        .into_tuple::<i32>()
-        .one(&txn)
-        .await?
-        .ok_or_else(|| AppError::SlideNotFound)?;
-    slide_group::check_slide_group_ownership(
-        &session.populate(hive_client).await?,
-        &txn,
-        slide_group_id,
-    )
-    .await?;
-
-    // archive (delete) content already on this screen (if any)
-    entity::content::Entity::update_many()
-        .filter(entity::content::Column::Slide.eq(upload.data.slide))
-        .filter(entity::content::Column::Screen.eq(upload.data.screen))
-        .filter(entity::content::Column::ArchiveDate.is_null())
-        .set(entity::content::ActiveModel {
-            archive_date: Set(Some(Utc::now().naive_utc())),
-            ..Default::default()
-        })
-        .exec(&txn)
-        .await?;
-
     let key = files.upload_file(&mut upload.file).await?;
 
     let res = entity::content::ActiveModel {
-        slide: Set(upload.data.slide),
+        slide: Set(None),
         screen: Set(upload.data.screen),
         content_type: Set(upload.data.content_type.into()),
         file_path: Set(key),
@@ -88,7 +44,15 @@ pub async fn create_content(
     txn.commit().await?;
 
     // NOTE: non-existent route
-    Ok(build_created_response("/api/content", res.id))
+    Ok(
+        Created::new(format!("/api/content/{}", res.id)).body(Json(ContentDto {
+            id: res.id,
+            screen: res.screen,
+            content_type: upload.data.content_type,
+            url: files.file_url(&res.file_path),
+            archive_date: None,
+        })),
+    )
 }
 
 #[cfg(test)]
@@ -136,7 +100,6 @@ mod tests {
         util_create_slide(&client, 1, 1);
 
         let data = CreateContentDto {
-            slide: 1,
             screen: 1,
             content_type: ContentType::Html,
         };
@@ -145,7 +108,6 @@ mod tests {
         assert_created!(response, "/api/content", 1);
 
         let data = CreateContentDto {
-            slide: 1,
             screen: 2,
             content_type: ContentType::Html,
         };
@@ -223,7 +185,6 @@ mod tests {
         util_create_slide(&client, 1, 1);
 
         let data = CreateContentDto {
-            slide: 1,
             screen: 1,
             content_type: ContentType::Html,
         };
@@ -319,7 +280,6 @@ mod tests {
         client.login_as("johndoe", false);
 
         let data = CreateContentDto {
-            slide: 1,
             screen: 1,
             content_type: ContentType::Html,
         };

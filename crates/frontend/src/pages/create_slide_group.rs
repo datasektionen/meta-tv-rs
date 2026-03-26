@@ -1,6 +1,6 @@
 use crate::{
     api::{self, AppError},
-    components::{error::ErrorList, start_end_date_fieldset::StartEndDateFieldset},
+    components::{error::ErrorList, start_end_date_input::StartEndDateInput},
 };
 
 use chrono::Utc;
@@ -95,16 +95,15 @@ pub fn CreateSlideGroup() -> impl IntoView {
 
     let is_submitting = submit_action.pending();
     let response = move || {
-        submit_action.value().get().map(|res| {
-            res.map(|created| {
-                view! { <Redirect path=format!("/slides/{}", created.id) /> }.into_any()
-            })
-        })
+        submit_action
+            .value()
+            .get()
+            .map(|res| res.map(|_| view! { <Redirect path="/" /> }.into_any()))
     };
 
     view! {
         <div class="container m-auto flex min-h-[80vh]">
-            <div class="card m-auto w-[35rem] max-w-full">
+            <div class="card m-auto w-[41rem] max-w-full">
                 <form
                     class="card-body"
                     on:submit=move |ev| {
@@ -114,19 +113,18 @@ pub fn CreateSlideGroup() -> impl IntoView {
                 >
                     <h1 class="card-title mb-2">"Create slide group"</h1>
                     <fieldset disabled=is_submitting>
-                        <label class="label mb-4">
-                            "Name"
+                        <label class="input mb-4">
+                            <span class="label">"Name"</span>
                             <input
-                                class="input mt-3"
                                 type="text"
                                 placeholder="My amazing slideshow"
                                 bind:value=title
                             />
                         </label>
 
-                        <label class="label mb-4">
-                            "Owner"
-                            <select class="select mt-3" node_ref=select>
+                        <label class="select mb-4">
+                            <span class="label">"Owner"</span>
+                            <select node_ref=select>
                                 <ForEnumerate
                                     each=move || available_owners.get()
                                     key=|owner| owner.clone()
@@ -134,10 +132,12 @@ pub fn CreateSlideGroup() -> impl IntoView {
                                         let owner_copy = owner.clone();
                                         view! {
                                             <option selected=move || owner_copy.is_none() value=index>
-                                                {move || owner
-                                                    .clone()
-                                                    .map(|owner| owner.name)
-                                                    .unwrap_or_else(username)}
+                                                {move || {
+                                                    owner
+                                                        .clone()
+                                                        .map(|owner| owner.name)
+                                                        .unwrap_or_else(username)
+                                                }}
                                             </option>
                                         }
                                     }
@@ -145,13 +145,17 @@ pub fn CreateSlideGroup() -> impl IntoView {
                             </select>
                         </label>
 
-                        <StartEndDateFieldset
-                            start_date=start_date
-                            end_date=end_date
-                            disable_end_date_removal_reason=Some(
-                                "The end date can be removed after the slide group has been created.",
-                            )
-                        />
+                        <fieldset>
+                            <legend class="text-base/7 font-semibold">Active Timespan</legend>
+                            <StartEndDateInput
+                                class="mt-2"
+                                start_date=start_date
+                                end_date=end_date
+                                disable_end_date_removal_reason=Some(
+                                    "The end date can be removed after the slide group has been created.",
+                                )
+                            />
+                        </fieldset>
 
                         <div class="card-actions justify-end">
                             <button type="submit" class="btn btn-primary">

@@ -1,13 +1,14 @@
 use common::dtos::{
-    ContentDto, CreateSlideGroupDto, GroupDto, LangDto, OwnerDto, SlideDto, SlideGroupDto,
-    UserInfoDto,
+    ContentDto, CreateSlideGroupDto, EditSlideDto, EditSlideGroupDto, GroupDto, LangDto, OwnerDto,
+    SlideDto, SlideGroupDto, UserInfoDto,
 };
 use rocket::{http::Status, serde::json::Json, State};
 use sea_orm::{
-    sqlx::types::chrono, ActiveModelTrait, ColumnTrait, DatabaseTransaction, DbErr, EntityTrait,
+    sqlx::types::chrono, ActiveModelTrait, ColumnTrait, DatabaseTransaction, EntityTrait,
     QueryFilter, QueryOrder, QuerySelect, QueryTrait, Set, TransactionTrait,
 };
 use sea_orm_rocket::Connection;
+use std::collections::{HashMap, HashSet};
 
 use crate::{
     auth::{hive::HiveClient, Session},
@@ -178,7 +179,7 @@ pub async fn create_slide_group(
     slide_group: Json<CreateSlideGroupDto>,
 ) -> Result<CreatedResponse, AppError> {
     let db = conn.into_inner();
-    
+
     let owner = match &slide_group.owner {
         None => OwnerDto::User(session.username),
         Some(group) => OwnerDto::Group(group.clone()),
@@ -207,51 +208,156 @@ pub async fn update_slide_group(
     conn: Connection<'_, Db>,
     id: i32,
     hive_client: &State<HiveClient>,
-    slide_group: Json<CreateSlideGroupDto>,
+    slide_group: Json<EditSlideGroupDto>,
 ) -> Result<Status, AppError> {
     let db = conn.into_inner();
     let txn = db.begin().await?;
+    let slide_group = slide_group.into_inner();
 
     check_slide_group_ownership(&session.populate(hive_client).await?, &txn, id).await?;
     get_non_archived_slide_group(id, &txn).await?;
 
     entity::slide_group::ActiveModel {
         id: Set(id),
-        title: Set(slide_group.title.clone()),
+        title: Set(slide_group.title),
         priority: Set(slide_group.priority),
         hidden: Set(slide_group.hidden),
         start_date: Set(slide_group.start_date.naive_utc()),
         end_date: Set(slide_group.end_date.as_ref().map(|d| d.naive_utc())),
+        published: Set(slide_group.published),
         ..Default::default()
     }
     .update(&txn)
     .await?;
 
-    txn.commit().await?;
+    let existing_slides: Vec<(i32, i32)> = entity::slide::Entity::find()
+        .filter(entity::slide::Column::Group.eq(id))
+        .filter(entity::slide::Column::ArchiveDate.is_null())
+        .select_only()
+        .column(entity::slide::Column::Id)
+        .column(entity::slide::Column::Position)
+        .into_tuple()
+        .all(&txn)
+        .await?;
+    let existing_slide_ids: HashSet<i32> = existing_slides
+        .iter()
+        .map(|(slide_id, _)| *slide_id)
+        .collect();
+    let existing_slide_positions: HashMap<i32, i32> = existing_slides.into_iter().collect();
+    let mut referenced_slide_ids: HashSet<i32> = HashSet::new();
+    let mut content_assignments: HashMap<i32, i32> = HashMap::new();
 
-    Ok(Status::NoContent)
-}
+    for slide in slide_group.slides {
+        match slide {
+            EditSlideDto::Existing {
+                id: slide_id,
+                position,
+                content,
+                ..
+            } => {
+                if !existing_slide_ids.contains(&slide_id) {
+                    return Err(AppError::SlideNotFound);
+                }
 
-#[put("/slide-group/<id>/publish")]
-pub async fn publish_slide_group(
-    session: Session,
-    conn: Connection<'_, Db>,
-    hive_client: &State<HiveClient>,
-    id: i32,
-) -> Result<Status, AppError> {
-    let db = conn.into_inner();
-    let txn = db.begin().await?;
+                if existing_slide_positions.get(&slide_id).copied() != Some(position) {
+                    entity::slide::ActiveModel {
+                        id: Set(slide_id),
+                        position: Set(position),
+                        ..Default::default()
+                    }
+                    .update(&txn)
+                    .await?;
+                }
 
-    check_slide_group_ownership(&session.populate(hive_client).await?, &txn, id).await?;
-    get_non_archived_slide_group(id, &txn).await?;
+                referenced_slide_ids.insert(slide_id);
+                for content_id in content {
+                    content_assignments.insert(content_id, slide_id);
+                }
+            }
+            EditSlideDto::New { position, content } => {
+                let inserted = entity::slide::ActiveModel {
+                    position: Set(position),
+                    group: Set(id),
+                    archive_date: Set(None),
+                    ..Default::default()
+                }
+                .insert(&txn)
+                .await?;
 
-    entity::slide_group::ActiveModel {
-        id: Set(id),
-        published: Set(true),
-        ..Default::default()
+                referenced_slide_ids.insert(inserted.id);
+                for content_id in content {
+                    content_assignments.insert(content_id, inserted.id);
+                }
+            }
+        }
     }
-    .update(&txn)
-    .await?;
+
+    let now = chrono::Utc::now().naive_utc();
+
+    let slides_to_archive: Vec<i32> = existing_slide_ids
+        .difference(&referenced_slide_ids)
+        .copied()
+        .collect();
+    if !slides_to_archive.is_empty() {
+        entity::slide::Entity::update_many()
+            .filter(entity::slide::Column::Id.is_in(slides_to_archive))
+            .set(entity::slide::ActiveModel {
+                archive_date: Set(Some(now)),
+                ..Default::default()
+            })
+            .exec(&txn)
+            .await?;
+    }
+
+    let existing_content_ids = if existing_slide_ids.is_empty() {
+        Vec::new()
+    } else {
+        entity::content::Entity::find()
+            .select_only()
+            .column(entity::content::Column::Id)
+            .filter(entity::content::Column::Slide.is_in(existing_slide_ids.iter().copied()))
+            .filter(entity::content::Column::ArchiveDate.is_null())
+            .into_tuple::<i32>()
+            .all(&txn)
+            .await?
+    };
+
+    let referenced_content_ids: HashSet<i32> = content_assignments.keys().copied().collect();
+    let contents_to_archive: Vec<i32> = existing_content_ids
+        .into_iter()
+        .filter(|content_id| !referenced_content_ids.contains(content_id))
+        .collect();
+
+    if !contents_to_archive.is_empty() {
+        entity::content::Entity::update_many()
+            .filter(entity::content::Column::Id.is_in(contents_to_archive))
+            .set(entity::content::ActiveModel {
+                archive_date: Set(Some(now)),
+                ..Default::default()
+            })
+            .exec(&txn)
+            .await?;
+    }
+
+    let mut content_ids_by_slide: HashMap<i32, Vec<i32>> = HashMap::new();
+    for (content_id, slide_id) in content_assignments {
+        content_ids_by_slide
+            .entry(slide_id)
+            .or_default()
+            .push(content_id);
+    }
+
+    for (slide_id, content_ids) in content_ids_by_slide {
+        entity::content::Entity::update_many()
+            .filter(entity::content::Column::Id.is_in(content_ids))
+            .set(entity::content::ActiveModel {
+                slide: Set(Some(slide_id)),
+                archive_date: Set(None),
+                ..Default::default()
+            })
+            .exec(&txn)
+            .await?;
+    }
 
     txn.commit().await?;
 
@@ -280,38 +386,6 @@ pub async fn archive_slide_group(
     }
     .update(&txn)
     .await?;
-
-    txn.commit().await?;
-
-    Ok(Status::NoContent)
-}
-
-#[put("/slide-group/<id>/owner", data = "<owner>")]
-pub async fn update_slide_group_owner(
-    session: Session,
-    conn: Connection<'_, Db>,
-    hive_client: &State<HiveClient>,
-    id: i32,
-    owner: Json<OwnerDto>,
-) -> Result<Status, AppError> {
-    let db = conn.into_inner();
-    let txn = db.begin().await?;
-
-    check_slide_group_ownership(&session.populate(hive_client).await?, &txn, id).await?;
-
-    let result = entity::slide_group::ActiveModel {
-        id: Set(id),
-        created_by: Set(owner.id()),
-        ..Default::default()
-    }
-    .update(&txn)
-    .await;
-
-    match result {
-        Ok(_) => {}
-        Err(DbErr::RecordNotUpdated) => return Err(AppError::SlideGroupNotFound),
-        Err(error) => return Err(error.into()),
-    };
 
     txn.commit().await?;
 
@@ -365,7 +439,7 @@ async fn resolve_owner(
 
 #[cfg(test)]
 mod tests {
-    use common::dtos::{CreateSlideGroupDto, OwnerDto, SlideGroupDto};
+    use common::dtos::{EditSlideGroupDto, OwnerDto, SlideGroupDto};
     use rocket::http::Status;
     use sea_orm::prelude::DateTimeUtc;
 
@@ -448,13 +522,17 @@ mod tests {
 
         let response = client
             .put("/api/slide-group/1")
-            .json(&CreateSlideGroupDto {
+            .json(&EditSlideGroupDto {
+                id: 1,
                 title: "Lorem Ipsum".to_string(),
-                owner: None,
                 priority: 1,
                 hidden: false,
+                created_by: OwnerDto::User("johndoe".to_string()),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
+                archive_date: None,
+                published: false,
+                slides: vec![],
             })
             .dispatch();
         assert_eq!(response.status(), Status::NoContent);
@@ -486,13 +564,17 @@ mod tests {
 
         let response = client
             .put("/api/slide-group/1")
-            .json(&CreateSlideGroupDto {
+            .json(&EditSlideGroupDto {
+                id: 1,
                 title: "Lorem Ipsum".to_string(),
-                owner: None,
                 priority: 1,
                 hidden: false,
+                created_by: OwnerDto::User("johndoe".to_string()),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
                 end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
+                archive_date: None,
+                published: false,
+                slides: vec![],
             })
             .dispatch();
         assert_app_error!(response, AppError::SlideGroupNotFound);
@@ -511,69 +593,19 @@ mod tests {
 
         let response = client
             .put("/api/slide-group/1")
-            .json(&CreateSlideGroupDto {
-                title: "Lorem Ipsum".to_string(),
-                owner: None,
-                priority: 1,
-                hidden: false,
-                start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
-                end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
-            })
-            .dispatch();
-        assert_app_error!(response, AppError::SlideGroupArchived);
-    }
-
-    #[test]
-    fn publish_slide_group() {
-        let mut client = TestClient::new();
-        client.login_as("johndoe", false);
-
-        util_create_slide_group(&client);
-
-        let response = client.put("/api/slide-group/1/publish").dispatch();
-        assert_eq!(response.status(), Status::NoContent);
-        assert_eq!(response.into_string(), None);
-
-        let response = client.get("/api/slide-group").dispatch();
-        assert_eq!(response.status(), Status::Ok);
-        assert_eq!(
-            response.into_json(),
-            Some(vec![SlideGroupDto {
+            .json(&EditSlideGroupDto {
                 id: 1,
                 title: "Lorem Ipsum".to_string(),
-                priority: 0,
+                priority: 1,
                 hidden: false,
                 created_by: OwnerDto::User("johndoe".to_string()),
                 start_date: DateTimeUtc::from_timestamp_nanos(1739471974000000),
-                end_date: None,
+                end_date: Some(DateTimeUtc::from_timestamp_nanos(1739471975000000)),
                 archive_date: None,
-                published: true,
+                published: false,
                 slides: vec![],
-            }])
-        );
-    }
-
-    #[test]
-    fn publish_slide_group_not_found() {
-        let mut client = TestClient::new();
-        client.login_as("johndoe", false);
-
-        let response = client.put("/api/slide-group/1/publish").dispatch();
-        assert_app_error!(response, AppError::SlideGroupNotFound);
-    }
-
-    #[test]
-    fn publish_slide_group_archived() {
-        let mut client = TestClient::new();
-        client.login_as("johndoe", false);
-
-        util_create_slide_group(&client);
-
-        let response = client.delete("/api/slide-group/1").dispatch();
-        assert_eq!(response.status(), Status::NoContent);
-        assert_eq!(response.into_string(), None);
-
-        let response = client.put("/api/slide-group/1/publish").dispatch();
+            })
+            .dispatch();
         assert_app_error!(response, AppError::SlideGroupArchived);
     }
 

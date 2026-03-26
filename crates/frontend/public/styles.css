@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @plugin "./daisyui.js" {
   themes: light --default, dark --prefersdark;
-  include: button, card, skeleton, select, alert, tooltip, input;
+  include: alert, button, card, checkbox, input, label, skeleton, select, tooltip;
   logs: false;
 }
 
@@ -28,24 +28,76 @@
     &:not([open]) {
       display: none;
     }
-  }
-}
-
-@layer utilities {
-  .input {
-    @apply flex
-  }
-  .select {
-    @apply flex
-  }
-}
-
-@layer components {
-  .label {
-    @apply block mb-2 text-sm font-medium text-gray-900 dark:text-white;
+    flex-direction: row;
   }
 }
 
 @utility card {
   @apply bg-base-100 shadow-sm;
+}
+
+/* A list of items that when open shows its items scaling up while appearing,
+  i.e. having them "pop in" like the DaisyUI fab component.
+  NOTE: The items are right-justified and animated in reverse document order. */
+@utility pop-in {
+  @apply flex items-center justify-end;
+  
+  > .pop-in-item {
+    visibility: hidden;
+    scale: 80%;
+    opacity: 0;
+    transition-property: opacity, scale, visibility;
+    transition-duration: 0.2s;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:nth-child(1) {
+      transition-delay: 30ms;
+    }
+    &:nth-child(2) {
+      transition-delay: 60ms;
+    }
+    &:nth-child(3) {
+      transition-delay: 90ms;
+    }
+    &:nth-child(4) {
+      transition-delay: 120ms;
+    }
+  }
+}
+
+@utility pop-in-open {
+  > .pop-in-item {
+    visibility: visible;
+    scale: 100%;
+    opacity: 1;
+    
+    @starting-style {
+      opacity: 0;
+      scale: 80%;
+      visibility: hidden;
+    }
+    
+    /* Ensure that the transition delay is applied in the reverse order on
+      opening. */
+    &:nth-last-child(1) {
+      transition-delay: 30ms;
+    }
+    &:nth-last-child(2) {
+      transition-delay: 60ms;
+    }
+    &:nth-last-child(3) {
+      transition-delay: 90ms;
+    }
+    &:nth-last-child(4) {
+      transition-delay: 120ms;
+    }
+  }
+}
+
+/* Makes the items of a pop-in layout set display to none when not open, meaning
+  that they don't participate in layouting. */
+@utility pop-in-collapse-layout {
+  &:not(.pop-in-open) > .pop-in-item {
+    display: none;
+  }
 }
