@@ -7,27 +7,26 @@ use web_sys::File;
 use crate::{
     api,
     components::{dialog::Dialog, error::ErrorList},
-    context::SlideGroupOptionsContext,
 };
 
 #[component]
 pub fn ContentItem(
     #[prop()] screen: ScreenDto,
-    #[prop()] slide_id: i32,
     #[prop(into)] content: Signal<Option<ContentDto>>,
+    // Function which is called with the resulting content ID after the user has uploaded content.
+    on_submit: impl Fn(ContentDto) -> () + 'static,
+    #[prop(into)] editable: Signal<bool>,
 ) -> impl IntoView {
     let is_upload_dialog_open = RwSignal::new(false);
-
-    let is_readonly = use_context::<SlideGroupOptionsContext>().is_none();
 
     view! {
         <div>
             <p class="uppercase text-current/80 font-bold text-sm">{screen.name}</p>
-            <div class="aspect-16/9 h-40 border">
+            <div class="aspect-16/9 border">
                 <UploadContentDialog
                     screen_id=screen.id
-                    slide_id=slide_id
                     open=is_upload_dialog_open
+                    on_submit=on_submit
                 />
                 {move || {
                     if let Some(content) = content.get() {
@@ -67,15 +66,7 @@ pub fn ContentItem(
                                     .into_any()
                             }
                         }
-                    } else if is_readonly {
-                        view! {
-                            <div class="w-full h-full bg-base-200 flex gap-2 flex-col text-xl justify-center items-center">
-                                <Icon icon=i::MdiFileDocumentAlert width="2em" height="2em" />
-                                "Empty"
-                            </div>
-                        }
-                            .into_any()
-                    } else {
+                    } else if editable.get() {
                         view! {
                             <button
                                 class="w-full h-full bg-base-200 flex gap-2 flex-col text-xl justify-center items-center"
@@ -84,6 +75,14 @@ pub fn ContentItem(
                                 <Icon icon=i::MdiPlus width="2em" height="2em" />
                                 "Upload"
                             </button>
+                        }
+                            .into_any()
+                    } else {
+                        view! {
+                            <div class="w-full h-full bg-base-200 flex gap-2 flex-col text-xl justify-center items-center">
+                                <Icon icon=i::MdiFileDocumentAlert width="2em" height="2em" />
+                                "Empty"
+                            </div>
                         }
                             .into_any()
                     }
@@ -96,15 +95,12 @@ pub fn ContentItem(
 #[component]
 pub fn UploadContentDialog(
     #[prop()] screen_id: i32,
-    #[prop()] slide_id: i32,
     open: RwSignal<bool>,
+    // Function which is called with the resulting populated content after the user has uploaded
+    // content.
+    on_submit: impl Fn(ContentDto) + 'static,
 ) -> impl IntoView {
     let input_ref = NodeRef::new();
-
-    let Some(page_context) = use_context::<SlideGroupOptionsContext>() else {
-        // if context is not available, then hide dialog
-        return ().into_any();
-    };
 
     let upload_action = Action::new_local(move |file: &File| {
         let file = file.clone();
@@ -117,7 +113,6 @@ pub fn UploadContentDialog(
             ContentType::Html
         };
         let data = CreateContentDto {
-            slide: slide_id,
             screen: screen_id,
             content_type,
         };
@@ -125,11 +120,15 @@ pub fn UploadContentDialog(
     });
 
     let is_submitting = upload_action.pending();
-    let response = move || upload_action.value().get().map(|r| r.map(|_| ()));
+    let response = move || upload_action.value().get();
     Effect::new(move || {
-        if response().map(|res| res.is_ok()).unwrap_or_default() {
-            page_context.refresh_group.dispatch(());
+        if let Some(Ok(created)) = response() {
             open.set(false);
+            // Make sure that the caller doesn't accidentally subscribe this effect to other
+            // dependencies.
+            untrack(|| {
+                on_submit(created);
+            });
         }
     });
 
@@ -169,7 +168,7 @@ pub fn UploadContentDialog(
 
                 <ErrorBoundary fallback=|errors| {
                     view! { <ErrorList errors=errors /> }.into_any()
-                }>{response}</ErrorBoundary>
+                }>{move || response().map(|r| r.map(|_| ()))}</ErrorBoundary>
             </div>
         </Dialog>
     }

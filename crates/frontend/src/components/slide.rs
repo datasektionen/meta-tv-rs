@@ -1,96 +1,86 @@
-use common::dtos::{CreateSlideDto, SlideDto, SlideGroupDto};
 use leptos::prelude::*;
+use reactive_stores::{Field, Store};
 
 use crate::{
-    api,
-    components::{content::ContentItem, dialog::Dialog, utils::ForVecMemo},
-    context::{ScreenContext, SlideGroupOptionsContext},
+    components::{content::ContentItem, dialog::Dialog},
+    context::ScreenContext,
+    utils::edit_slide_group::{
+        EditSlide, EditSlideGroup, EditSlideGroupStoreFields, EditSlideStoreFields,
+    },
 };
 
 #[component]
 pub fn SlideList(
-    slide_group: Signal<SlideGroupDto>,
+    #[prop(into)] slide_group: Store<EditSlideGroup>,
     #[prop(into)] editable: Signal<bool>,
 ) -> impl IntoView {
-    let group_id = move || slide_group.read().id;
-    let max_position = move || {
-        slide_group
-            .get()
-            .slides
-            .iter()
-            .map(|s| s.position)
-            .max()
-            .unwrap_or(-1)
+    let add_slide = move || {
+        slide_group.update(|slide_group| {
+            let max_position = slide_group
+                .slides
+                .iter()
+                .map(|s| s.position)
+                .max()
+                .unwrap_or(-1);
+            slide_group.slides.push(EditSlide {
+                existing: None,
+                position: max_position + 1,
+                content: Vec::new(),
+            });
+        });
     };
 
     view! {
-        <ForVecMemo
-            vec=Signal::derive(move || slide_group.get().slides)
-            key=|slide| slide.id
-            fallback=move || {
+        <For
+            each=move || slide_group.slides()
+            key=|slide| slide.key()
+            children=move |slide| {
                 view! {
-                    <div class="h-60 text-center content-center bg-base-200 rounded-lg my-4">
-                        "There are currently no slides"
-                    </div>
+                    <SlideRow
+                        slide=slide
+                        on_delete=move || {
+                            let slide = slide.get_untracked();
+                            slide_group
+                                .update(move |slide_group| {
+                                    slide_group.slides.retain(|iter_slide| iter_slide != &slide);
+                                });
+                        }
+                        editable=editable
+                    />
                 }
                     .into_any()
             }
-            children=move |slide| { view! { <SlideRow slide=slide editable=editable /> }.into_any() }
         />
+        <Show when=move || slide_group.slides().get().len() == 0>
+            <div class="h-60 text-center content-center bg-base-200 rounded-lg my-4">
+                "There are currently no slides"
+            </div>
+        </Show>
         {move || {
             view! {
                 <Show when=move || editable.get()>
-                    <AddSlideButton
-                        group_id=Signal::derive(group_id)
-                        max_position=Signal::derive(max_position)
-                    />
+                    <button
+                        class="btn"
+                        on:click=move |_| {
+                            add_slide();
+                        }
+                    >
+                        "Add Slide"
+                    </button>
                 </Show>
-            }.into_any()
+            }
+                .into_any()
         }}
     }
     .into_any()
 }
 
 #[component]
-fn AddSlideButton(#[prop(into)] group_id: Signal<i32>, max_position: Signal<i32>) -> impl IntoView {
-    let create_action = Action::new_local(move |position: &i32| {
-        let data = CreateSlideDto {
-            position: *position,
-            slide_group: group_id.get(),
-        };
-        async move { api::create_slide(&data).await }
-    });
-
-    let Some(page_context) = use_context::<SlideGroupOptionsContext>() else {
-        // if context is not available, then hide button
-        return ().into_any();
-    };
-
-    let is_submitting = create_action.pending();
-    let response = move || create_action.value().get().map(|r| r.map(|_| ()));
-    Effect::new(move || {
-        if response().map(|res| res.is_ok()).unwrap_or_default() {
-            page_context.refresh_group.dispatch(());
-        }
-    });
-
-    view! {
-        {response}
-        <button
-            class="btn"
-            disabled=is_submitting
-            on:click=move |_| {
-                create_action.dispatch(max_position.get() + 1);
-            }
-        >
-            "Add Slide"
-        </button>
-    }
-    .into_any()
-}
-
-#[component]
-fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, editable: Signal<bool>) -> impl IntoView {
+fn SlideRow(
+    #[prop(into)] slide: Field<EditSlide>,
+    on_delete: impl Fn() + 'static + Send,
+    editable: Signal<bool>,
+) -> impl IntoView {
     let screens = use_context::<ScreenContext>()
         .expect("expected screen context")
         .screens;
@@ -98,12 +88,9 @@ fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, editable: Signal<bool>) -> im
     let is_delete_dialog_open = RwSignal::new(false);
 
     view! {
-        <DeleteDialog
-            slide_id=slide.get().id
-            open=is_delete_dialog_open
-        />
-        <div class="my-6">
-            <div class="flex gap-4 flex-col md:flex-row justify-center md:justify-start items-center md:items-start">
+        <DeleteDialog open=is_delete_dialog_open on_delete=on_delete />
+        <div class="my-6 @container">
+            <div class="flex gap-[1rem] flex-wrap flex-col justify-center items-center @min-[56rem]:flex-row">
                 <For
                     each=move || screens.get()
                     key=|screen| screen.id
@@ -114,11 +101,26 @@ fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, editable: Signal<bool>) -> im
                                     slide.content.iter().find(|c| c.screen == screen.id).cloned()
                                 })
                         });
+                        let screen_copy = screen.clone();
                         view! {
                             <ContentItem
+                                attr:class="w-[18rem] grow"
                                 screen=screen
-                                slide_id=slide.get_untracked().id
                                 content=content
+                                on_submit=move |new_content| {
+                                    let slide_content = slide.content();
+                                    slide_content
+                                        .update(|slide_content| {
+                                            match slide_content
+                                                .iter_mut()
+                                                .find(move |content| content.screen == screen_copy.id)
+                                            {
+                                                Some(content) => *content = new_content,
+                                                None => slide_content.push(new_content),
+                                            }
+                                        });
+                                }
+                                editable
                             />
                         }
                             .into_any()
@@ -129,12 +131,16 @@ fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, editable: Signal<bool>) -> im
                 view! {
                     <Show when=move || editable.get()>
                         <div class="flex flex-row justify-center md:justify-start">
-                            <button class="btn btn-soft btn-choose btn-error my-3" on:click=move |_| is_delete_dialog_open.set(true)>
-                                Delete Slide
+                            <button
+                                class="btn btn-soft btn-choose btn-error my-3"
+                                on:click=move |_| is_delete_dialog_open.set(true)
+                            >
+                                "Delete Slide"
                             </button>
                         </div>
                     </Show>
-                }.into_any()
+                }
+                    .into_any()
             }}
         </div>
     }
@@ -142,22 +148,7 @@ fn SlideRow(#[prop(into)] slide: Signal<SlideDto>, editable: Signal<bool>) -> im
 }
 
 #[component]
-pub fn DeleteDialog(#[prop()] slide_id: i32, open: RwSignal<bool>) -> impl IntoView {
-    let delete_action =
-        Action::new_local(move |_: &()| async move { api::delete_slide_row(slide_id).await });
-
-    let Some(page_context) = use_context::<SlideGroupOptionsContext>() else {
-        // if context is not available, then hide button
-        return ().into_any();
-    };
-
-    let response = move || delete_action.value().get().map(|r| r.map(|_| ()));
-    Effect::new(move || {
-        if response().map(|res| res.is_ok()).unwrap_or_default() {
-            page_context.refresh_group.dispatch(());
-        }
-    });
-
+pub fn DeleteDialog(open: RwSignal<bool>, on_delete: impl Fn() + 'static + Send) -> impl IntoView {
     view! {
         <Dialog open=open>
             <div class="card space-y-6 p-4">
@@ -165,8 +156,15 @@ pub fn DeleteDialog(#[prop()] slide_id: i32, open: RwSignal<bool>) -> impl IntoV
                     <p>Are you sure you want to delete this slide</p>
                 </div>
                 <div class="mt-6 flex gap-3">
-                    <button class="btn btn-error" on:click=move |_| {delete_action.dispatch(());}>
-                        Delete
+                    <button
+                        class="btn btn-error"
+                        type="button"
+                        on:click=move |_| {
+                            on_delete();
+                            open.set(false);
+                        }
+                    >
+                        "Delete"
                     </button>
                     <button class="btn" type="button" on:click=move |_| open.set(false)>
                         "Cancel"

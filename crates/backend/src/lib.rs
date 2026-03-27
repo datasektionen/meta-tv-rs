@@ -124,9 +124,7 @@ pub(crate) fn rocket() -> Rocket<Build> {
                 routes::slide_group::create_slide_group,
                 routes::slide_group::get_slide_group,
                 routes::slide_group::list_slide_groups,
-                routes::slide_group::publish_slide_group,
                 routes::slide_group::update_slide_group,
-                routes::slide_group::update_slide_group_owner,
             ],
         )
         .register("/api", catchers![routes::auth::not_logged_in])
