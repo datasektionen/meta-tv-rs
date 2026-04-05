@@ -8,7 +8,7 @@ use crate::{
 
 use chrono::{DateTime, Utc};
 use icondata as i;
-use leptos::prelude::*;
+use leptos::{html::Div, prelude::*};
 use leptos_icons::Icon;
 
 #[component]
@@ -26,11 +26,38 @@ pub fn StartEndDateInput(
             "Add end date"
         }
     };
+    let container = NodeRef::<Div>::new();
+    let first_input_container = NodeRef::<Div>::new();
+    let second_input_container = NodeRef::<Div>::new();
+    let container_size = leptos_use::use_element_size(container);
+
+    // If the second input has wrapped and is below the first.
+    // Note: We have to track this using code since the arrow between the inputs should be hidden if
+    //   they have been wrapped on separate lines, which is not something which we can select for
+    //   using CSS.
+    let layout_wrapped = Memo::new(move |_| {
+        let Some(first_input_container) = first_input_container.get() else {
+            return false;
+        };
+        let Some(second_input_container) = second_input_container.get() else {
+            return false;
+        };
+
+        // Rerun calculation if the container changes width, as the wrapping of its flex layout
+        // should only change if its width changes.
+        container_size.width.track();
+
+        let first_bounds = first_input_container.get_bounding_client_rect();
+        let second_bounds = second_input_container.get_bounding_client_rect();
+        return first_bounds.bottom() <= second_bounds.top();
+    });
 
     view! {
-        <div class=move || format!("{} @container max-w-[41rem]", class.get())>
-            <div class="grid items-center gap-x-4 gap-y-4 grid-rows-auto grid-cols-1 @min-[34rem]:grid-cols-[minmax(min-content,19rem)_1em_minmax(min-content,19rem)]">
-                <div>
+        <div class=move || format!("{} max-w-[41rem]", class.get()) node_ref=container>
+            // We avoid using flex-gap, since that would leave an additional gaps between the two
+            // inputs whenever the arrow has wrapped to its own line.
+            <div class="flex flex-wrap items-center gap-x-4 -mt-4">
+                <div class="mt-4" node_ref=first_input_container>
                     <label class="input">
                         <span class="label">Start</span>
                         <input
@@ -46,10 +73,14 @@ pub fn StartEndDateInput(
                         />
                     </label>
                 </div>
-                <div class="shrink-0 @max-[34rem]:hidden">
+                <div
+                    class="shrink-0 overflow-hidden"
+                    class:mt-4=move || !layout_wrapped.get()
+                    class:h-0=layout_wrapped
+                >
                     <Icon icon=i::MdiArrowRightBold />
                 </div>
-                <div>
+                <div class="mt-4" node_ref=second_input_container>
                     <If cond=Signal::derive(move || end_date.get().0)>
                         <Then slot>
                             <label class="input">
