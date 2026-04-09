@@ -8,7 +8,8 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub slide: i32,
+    // The slide which this content is attached to. Is `None` if it's not attached yet.
+    pub slide: Option<i32>,
     pub screen: i32,
     pub content_type: ContentType,
     /// Object key in the S3 bucket.

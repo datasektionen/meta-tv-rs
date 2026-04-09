@@ -307,7 +307,7 @@ mod tests {
             .expect("failed to insert slide");
 
             entity::content::ActiveModel {
-                slide: Set(slide.id),
+                slide: Set(Some(slide.id)),
                 screen: Set(1),
                 content_type: Set(ContentType::Image),
                 file_path: Set(format!("slide_{}_content_0", slide.id)),
@@ -335,7 +335,7 @@ mod tests {
             assert_eq!(slide.id, 6);
 
             entity::content::ActiveModel {
-                slide: Set(slide.id),
+                slide: Set(Some(slide.id)),
                 screen: Set(1),
                 content_type: Set(ContentType::Image),
                 file_path: Set(format!("slide_{}_content_0", slide.id)),
@@ -360,7 +360,7 @@ mod tests {
             assert_eq!(slide.id, 7);
 
             entity::content::ActiveModel {
-                slide: Set(slide.id),
+                slide: Set(Some(slide.id)),
                 screen: Set(1),
                 content_type: Set(ContentType::Image),
                 file_path: Set(format!("slide_{}_content_0", slide.id)),
@@ -388,7 +388,7 @@ mod tests {
 
             let contents = [
                 entity::content::ActiveModel {
-                    slide: Set(slide.id),
+                    slide: Set(Some(slide.id)),
                     screen: Set(1),
                     content_type: Set(ContentType::Image),
                     file_path: Set(format!("slide_{}_content_0", slide.id)),
@@ -396,7 +396,7 @@ mod tests {
                     ..Default::default()
                 },
                 entity::content::ActiveModel {
-                    slide: Set(slide.id),
+                    slide: Set(Some(slide.id)),
                     screen: Set(1),
                     content_type: Set(ContentType::Image),
                     file_path: Set(format!("slide_{}_content_1", slide.id)),
@@ -423,7 +423,7 @@ mod tests {
             assert_eq!(slide.id, 9);
 
             entity::content::ActiveModel {
-                slide: Set(slide.id),
+                slide: Set(Some(slide.id)),
                 screen: Set(2),
                 content_type: Set(ContentType::Image),
                 file_path: Set(format!("slide_{}_content_0", slide.id)),
@@ -448,7 +448,7 @@ mod tests {
             assert_eq!(slide.id, 10);
 
             entity::content::ActiveModel {
-                slide: Set(slide.id),
+                slide: Set(Some(slide.id)),
                 screen: Set(1),
                 content_type: Set(ContentType::Image),
                 file_path: Set(format!("slide_{}_content_0", slide.id)),
@@ -475,14 +475,14 @@ mod tests {
 
             let contents = [
                 entity::content::ActiveModel {
-                    slide: Set(slide.id),
+                    slide: Set(Some(slide.id)),
                     screen: Set(1),
                     content_type: Set(ContentType::Html),
                     file_path: Set(format!("slide_{}_content_0", slide.id)),
                     ..Default::default()
                 },
                 entity::content::ActiveModel {
-                    slide: Set(slide.id),
+                    slide: Set(Some(slide.id)),
                     screen: Set(2),
                     content_type: Set(ContentType::Video),
                     file_path: Set(format!("slide_{}_content_1", slide.id)),

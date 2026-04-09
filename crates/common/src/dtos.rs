@@ -61,7 +61,7 @@ pub struct SlideGroupDto {
     pub slides: Vec<SlideDto>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(untagged)]
 pub enum OwnerDto {
     User(String),
@@ -87,6 +87,20 @@ impl OwnerDto {
                     .any(|membership| membership.as_group() == group.as_group()),
             }
     }
+
+    pub fn name(&self) -> &str {
+        match self {
+            OwnerDto::User(username) => username,
+            OwnerDto::Group(group) => &group.name,
+        }
+    }
+
+    pub fn username(&self) -> Option<&str> {
+        match self {
+            OwnerDto::User(username) => Some(username),
+            OwnerDto::Group(_) => None,
+        }
+    }
 }
 
 impl Default for OwnerDto {
@@ -96,7 +110,7 @@ impl Default for OwnerDto {
 }
 
 /// Represents a group in Hive.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default, Hash)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct GroupDto {
     pub name: String,
     pub id: String,
@@ -132,6 +146,66 @@ pub struct CreateSlideGroupDto {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct EditSlideGroupDto {
+    pub id: i32,
+    pub title: String,
+    pub priority: i32,
+    pub hidden: bool,
+    pub created_by: OwnerDto,
+    pub start_date: DateTime<Utc>,
+    pub end_date: Option<DateTime<Utc>>,
+    pub archive_date: Option<DateTime<Utc>>,
+    pub published: bool,
+    pub slides: Vec<EditSlideDto>,
+}
+
+impl From<SlideGroupDto> for EditSlideGroupDto {
+    fn from(value: SlideGroupDto) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            priority: value.priority,
+            hidden: value.hidden,
+            created_by: value.created_by,
+            start_date: value.start_date,
+            end_date: value.end_date,
+            archive_date: value.archive_date,
+            published: value.published,
+            slides: value
+                .slides
+                .into_iter()
+                .map(|slide| EditSlideDto::Existing {
+                    id: slide.id,
+                    position: slide.position,
+                    archive_date: slide.archive_date,
+                    content: slide
+                        .content
+                        .into_iter()
+                        .map(|content| content.id)
+                        .collect(),
+                })
+                .collect(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum EditSlideDto {
+    Existing {
+        id: i32,
+        position: i32,
+        archive_date: Option<DateTime<Utc>>,
+        // List of content entity IDs.
+        content: Vec<i32>,
+    },
+    New {
+        position: i32,
+        // List of content entity IDs.
+        content: Vec<i32>,
+    },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CreateSlideDto {
     pub position: i32,
     pub slide_group: i32,
@@ -152,7 +226,6 @@ pub struct SlideDto {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CreateContentDto {
-    pub slide: i32,
     pub screen: i32,
     pub content_type: ContentType,
 }

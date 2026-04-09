@@ -1,5 +1,5 @@
 use common::dtos::{
-    AppErrorDto, CreateContentDto, CreateSlideDto, CreateSlideGroupDto, CreatedDto, GroupDto,
+    AppErrorDto, ContentDto, CreateContentDto, CreateSlideGroupDto, CreatedDto, EditSlideGroupDto,
     ScreenDto, SlideGroupDto, UserInfoDto,
 };
 use gloo_net::http::{Request, Response};
@@ -90,10 +90,7 @@ pub async fn get_slide_group(id: i32) -> Result<SlideGroupDto, AppError> {
     .await
 }
 
-pub async fn update_slide_group(
-    id: i32,
-    slide_group: &CreateSlideGroupDto,
-) -> Result<(), AppError> {
+pub async fn update_slide_group(id: i32, slide_group: &EditSlideGroupDto) -> Result<(), AppError> {
     handle_blank_response(
         Request::put(&format!("/api/slide-group/{id}"))
             .json(slide_group)?
@@ -103,30 +100,7 @@ pub async fn update_slide_group(
     .await
 }
 
-pub async fn update_slide_group_owner(id: i32, owner: &GroupDto) -> Result<(), AppError> {
-    handle_blank_response(
-        Request::put(&format!("/api/slide-group/{id}/owner"))
-            .json(owner)?
-            .send()
-            .await?,
-    )
-    .await
-}
-
-pub async fn publish_slide_group(id: i32) -> Result<(), AppError> {
-    handle_blank_response(
-        Request::put(&format!("/api/slide-group/{id}/publish"))
-            .send()
-            .await?,
-    )
-    .await
-}
-
-pub async fn create_slide(slide: &CreateSlideDto) -> Result<CreatedDto, AppError> {
-    handle_response(Request::post("/api/slide").json(slide)?.send().await?).await
-}
-
-pub async fn upload_content(data: &CreateContentDto, file: &File) -> Result<CreatedDto, AppError> {
+pub async fn upload_content(data: &CreateContentDto, file: &File) -> Result<ContentDto, AppError> {
     let form_data = FormData::new()?;
     form_data.set_with_str("data", &serde_json::to_string(data)?)?;
     form_data.set_with_blob("file", file)?;
@@ -146,10 +120,6 @@ pub async fn archive_slide_group(id: i32) -> Result<(), AppError> {
             .await?,
     )
     .await
-}
-
-pub async fn delete_slide_row(id: i32) -> Result<(), AppError> {
-    handle_blank_response(Request::delete(&format!("/api/slide/{id}")).send().await?).await
 }
 
 pub fn get_screen_feed_url(screen_id: i32) -> String {

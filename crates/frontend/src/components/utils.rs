@@ -34,3 +34,24 @@ where
     }
     .into_any()
 }
+
+#[slot]
+pub struct Then {
+    children: ChildrenFn,
+}
+
+#[slot]
+pub struct Otherwise {
+    children: ChildrenFn,
+}
+
+#[component]
+pub fn If(#[prop(into)] cond: Signal<bool>, then: Then, otherwise: Otherwise) -> impl IntoView {
+    move || {
+        if cond.get() {
+            (then.children)().into_any()
+        } else {
+            (otherwise.children)().into_any()
+        }
+    }
+}
