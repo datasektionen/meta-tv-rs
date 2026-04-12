@@ -5,6 +5,7 @@ pub mod error;
 pub mod feed;
 pub mod layout;
 pub mod owner_select;
+pub mod rules_body;
 pub mod slide;
 pub mod slide_group;
 pub mod start_end_date_input;

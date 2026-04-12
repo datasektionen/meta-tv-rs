@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @plugin "./daisyui.js" {
   themes: light --default, dark --prefersdark;
-  include: alert, button, card, checkbox, input, label, skeleton, select, tooltip;
+  include: alert, button, card, checkbox, collapse, input, label, skeleton, select, tooltip;
   logs: false;
 }
 

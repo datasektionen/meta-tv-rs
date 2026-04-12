@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use reactive_stores::{Field, Store};
 
 use crate::{
-    components::{content::ContentItem, dialog::Dialog},
+    components::{content::ContentItem, dialog::Dialog, rules_body::RulesBody},
     context::ScreenContext,
     utils::edit_slide_group::{
         EditSlide, EditSlideGroup, EditSlideGroupStoreFields, EditSlideStoreFields,
@@ -31,6 +31,16 @@ pub fn SlideList(
     };
 
     view! {
+        <Show when=move || editable.get()>
+            <details class="collapse collapse-arrow w-fit">
+                <summary class="collapse-title text-current/60 pl-0">
+                    "Uploads must follow the slide policy"
+                </summary>
+                <div class="collapse-content pl-0">
+                    <RulesBody />
+                </div>
+            </details>
+        </Show>
         <For
             each=move || slide_group.slides()
             key=|slide| slide.key()
@@ -89,7 +99,7 @@ fn SlideRow(
 
     view! {
         <DeleteDialog open=is_delete_dialog_open on_delete=on_delete />
-        <div class="my-6 @container">
+        <div class="@container">
             <div class="flex gap-[1rem] flex-wrap flex-col justify-center items-center @min-[56rem]:flex-row">
                 <For
                     each=move || screens.get()
