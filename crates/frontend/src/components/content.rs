@@ -7,6 +7,7 @@ use web_sys::File;
 use crate::{
     api,
     components::{dialog::Dialog, error::ErrorList},
+    utils::dom_id::next_dom_id,
 };
 
 #[component]
@@ -18,10 +19,37 @@ pub fn ContentItem(
     #[prop(into)] editable: Signal<bool>,
 ) -> impl IntoView {
     let is_upload_dialog_open = RwSignal::new(false);
+    let content_description_id = next_dom_id("content-description");
+
+    let display_content = |content: ContentDto| match content.content_type {
+        ContentType::Image => {
+            view! { <img class="object-contain h-full w-full" src=&content.url /> }.into_any()
+        }
+        ContentType::Video => view! {
+            <video
+                controls
+                muted
+                preload="metadata"
+                class="object-contain h-full w-full"
+                src=&content.url
+            />
+        }
+        .into_any(),
+        ContentType::Html => view! {
+            <iframe
+                sandbox="allow-scripts allow-same-origin"
+                class="object-contain h-full w-full"
+                src=&content.url
+            />
+        }
+        .into_any(),
+    };
 
     view! {
         <div>
-            <p class="uppercase text-current/80 font-bold text-sm">{screen.name}</p>
+            <p class="uppercase text-current/80 font-bold text-sm" id=content_description_id.clone()>
+                {screen.name}
+            </p>
             <div class="aspect-16/9 border">
                 <UploadContentDialog
                     screen_id=screen.id
@@ -29,62 +57,42 @@ pub fn ContentItem(
                     on_submit=on_submit
                 />
                 {move || {
-                    if let Some(content) = content.get() {
-                        match content.content_type {
-                            ContentType::Image => {
-                                view! {
-                                    <img
-                                        class="object-contain h-full w-full"
-                                        src=&content.url
-                                        on:click=move |_| is_upload_dialog_open.set(true)
-                                    />
-                                }
-                                    .into_any()
+                    match (content.get(), editable.get()) {
+                        (Some(content), true) => {
+                            view! {
+                                <button
+                                    class="block h-full w-full"
+                                    aria-label="Upload image"
+                                    aria-describedby=content_description_id.clone()
+                                    on:click=move |_| is_upload_dialog_open.set(true)
+                                >
+                                    {display_content(content)}
+                                </button>
                             }
-                            ContentType::Video => {
-                                view! {
-                                    <video
-                                        controls
-                                        muted
-                                        preload="metadata"
-                                        class="object-contain h-full w-full"
-                                        src=&content.url
-                                        on:click=move |_| is_upload_dialog_open.set(true)
-                                    />
-                                }
-                                    .into_any()
+                                .into_any()
+                        }
+                        (Some(content), false) => display_content(content),
+                        (None, true) => {
+                            view! {
+                                <button
+                                    class="w-full h-full bg-base-200 flex gap-2 flex-col text-xl justify-center items-center"
+                                    on:click=move |_| is_upload_dialog_open.set(true)
+                                >
+                                    <Icon icon=i::MdiPlus width="2em" height="2em" />
+                                    "Upload"
+                                </button>
                             }
-                            ContentType::Html => {
-                                view! {
-                                    <iframe
-                                        sandbox="allow-scripts allow-same-origin"
-                                        class="object-contain h-full w-full"
-                                        src=&content.url
-                                        on:click=move |_| is_upload_dialog_open.set(true)
-                                    />
-                                }
-                                    .into_any()
+                                .into_any()
+                        }
+                        (None, false) => {
+                            view! {
+                                <div class="w-full h-full bg-base-200 flex gap-2 flex-col text-xl justify-center items-center">
+                                    <Icon icon=i::MdiFileDocumentAlert width="2em" height="2em" />
+                                    "Empty"
+                                </div>
                             }
+                                .into_any()
                         }
-                    } else if editable.get() {
-                        view! {
-                            <button
-                                class="w-full h-full bg-base-200 flex gap-2 flex-col text-xl justify-center items-center"
-                                on:click=move |_| is_upload_dialog_open.set(true)
-                            >
-                                <Icon icon=i::MdiPlus width="2em" height="2em" />
-                                "Upload"
-                            </button>
-                        }
-                            .into_any()
-                    } else {
-                        view! {
-                            <div class="w-full h-full bg-base-200 flex gap-2 flex-col text-xl justify-center items-center">
-                                <Icon icon=i::MdiFileDocumentAlert width="2em" height="2em" />
-                                "Empty"
-                            </div>
-                        }
-                            .into_any()
                     }
                 }}
             </div>
