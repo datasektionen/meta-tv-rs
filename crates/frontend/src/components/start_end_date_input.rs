@@ -124,7 +124,7 @@ pub fn StartEndDateInput(
                 </div>
             </div>
             <div class="flex justify-between items-top mt-3">
-                <p class="text-sm/6 text-gray-600">Dates are in Swedish time</p>
+                <p class="text-sm/6 text-current/60">Dates are in Swedish time</p>
                 <Show when=move || disable_end_date_removal_reason.is_none()>
                     <button
                         class="btn"
