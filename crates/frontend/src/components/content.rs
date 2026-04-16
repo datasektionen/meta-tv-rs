@@ -38,7 +38,7 @@ pub fn ContentItem(
         ContentType::Html => view! {
             <iframe
                 sandbox="allow-scripts allow-same-origin"
-                class="object-contain h-full w-full"
+                class="object-contain h-full w-full pointer-events-none"
                 src=&content.url
             />
         }
