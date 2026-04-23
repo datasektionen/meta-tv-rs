@@ -47,7 +47,10 @@ pub fn ContentItem(
 
     view! {
         <div>
-            <p class="uppercase text-current/80 font-bold text-sm" id=content_description_id.clone()>
+            <p
+                class="uppercase text-current/80 font-bold text-sm"
+                id=content_description_id.clone()
+            >
                 {screen.name}
             </p>
             <div class="aspect-16/9 border">
