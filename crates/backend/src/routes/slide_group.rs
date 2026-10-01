@@ -222,6 +222,7 @@ pub async fn update_slide_group(
         title: Set(slide_group.title),
         priority: Set(slide_group.priority),
         hidden: Set(slide_group.hidden),
+        created_by: Set(slide_group.created_by.id()),
         start_date: Set(slide_group.start_date.naive_utc()),
         end_date: Set(slide_group.end_date.as_ref().map(|d| d.naive_utc())),
         published: Set(slide_group.published),
