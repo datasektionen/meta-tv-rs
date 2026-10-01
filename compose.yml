@@ -10,7 +10,7 @@ services:
       - ROCKET_HIVE={url="http://nyckeln:7004/api/v1",secret="secret"}
       - ROCKET_SECRET_KEY=2hMUcPB1UjTd2W8aZDBxoUC27R0z9c56992m3x2MTE4D
       - ROCKET_ADDRESS=0.0.0.0
-      - ROCKET_PORT=8000
+      - ROCKET_PORT=8001
       - ROCKET_LIMITS={file="50MiB", data-form="51MiB"}
       - ROCKET_S3={url="http://localhost:9090", bucket="meta-tv", use_mock=true}
       - AWS_ACCESS_KEY_ID=test
@@ -19,15 +19,20 @@ services:
     configs:
     - source: nginx.conf
       target: /etc/nginx/nginx.conf
+    # The source code is mounted into the container and rebuilt on changes (see
+    # dev-entrypoint.sh). Build artifacts are kept in volumes so that they
+    # survive restarts and don't mix with the host's `target/`.
+    volumes:
+      - ./:/app
+      - target:/app/target
+      - cargo-registry:/usr/local/cargo/registry
+      - cache:/root/.cache
+    init: true
     depends_on:
       db:
         condition: service_healthy
       nyckeln:
         condition: service_healthy
-    develop:
-      watch:
-        - action: rebuild
-          path: crates/
   db:
     image: postgres:15
     container_name: db
@@ -71,12 +76,46 @@ services:
       - 7003:7003
       - 7004:7004
 
+volumes:
+  target:
+  cargo-registry:
+  cache:
+
 configs:
   nginx.conf:
     content: |
       events {}
 
       http {
+        # Forwards everything to the backend, except for trunk's websocket
+        # used to reload the page when the frontend has been rebuilt.
+        server {
+          listen 8000;
+
+          client_max_body_size 51M;
+
+          location /.well-known/trunk/ws {
+            proxy_pass http://127.0.0.1:8080;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade websocket;
+            proxy_set_header Connection upgrade;
+            proxy_read_timeout 1d;
+          }
+
+          location / {
+            proxy_pass http://127.0.0.1:8001;
+            proxy_http_version 1.1;
+            proxy_set_header Host $$http_host;
+            # Needed for server-sent events.
+            proxy_buffering off;
+            proxy_read_timeout 1d;
+
+            # Normally `trunk serve` fills in these placeholders in the
+            # auto-reload script, but here the backend serves the files.
+            sub_filter '{{__TRUNK_ADDRESS__}}' '$$http_host';
+            sub_filter '{{__TRUNK_WS_BASE__}}' '/';
+          }
+        }
         server {
           listen 7003;
 

@@ -1,9 +1,12 @@
-########################### frontend ###################################
+# Development image with hot reloading.
+#
+# This image only contains the toolchain. The source code is bind-mounted into
+# /app by compose.yml, and the frontend and backend are rebuilt inside the
+# container whenever a file changes (see dev-entrypoint.sh).
 
-FROM rust:1.89-alpine AS frontend
-WORKDIR /build
+FROM rust:1.89-alpine
 
-RUN apk update && apk upgrade && apk add make alpine-sdk libffi-dev trunk gcompat build-base
+RUN apk update && apk upgrade && apk add make alpine-sdk libffi-dev trunk gcompat build-base nginx watchexec
 
 ARG BUILDPLATFORM
 
@@ -15,58 +18,10 @@ RUN case "$BUILDPLATFORM" in \
 
 RUN chmod +x TAILWIND_CSS
 RUN mv TAILWIND_CSS /usr/bin/tailwindcss
-RUN tailwindcss
+RUN tailwindcss --help
 
 RUN rustup target add wasm32-unknown-unknown
 
-COPY crates/entity/ ../entity/
-COPY crates/common/ ../common/
+WORKDIR /app
 
-COPY crates/frontend/Cargo.toml .
-COPY crates/frontend/Trunk.dev.toml Trunk.toml
-RUN mkdir src
-COPY crates/frontend/dev/main.rs src/main.rs
-COPY crates/frontend/dev/index.html index.html
-
-RUN trunk build
-
-COPY crates/frontend/public/ public/
-COPY crates/frontend/src/ src/
-COPY crates/frontend/index.html index.html
-
-RUN trunk build
-
-######################## backend #########################################
-
-FROM rust:1.89-alpine AS backend
-WORKDIR /build
-
-RUN apk update && apk upgrade && apk add make alpine-sdk libffi-dev
-
-COPY crates/migration/ ../migration/
-COPY crates/entity/ ../entity/
-COPY crates/common/ ../common/
-COPY crates/backend/Cargo.toml .
-RUN mkdir src
-RUN echo "fn main() {}" > src/main.rs
-
-RUN cargo build
-
-COPY crates/backend/ .
-
-RUN cargo build
-
-FROM alpine:latest
-
-RUN apk add nginx
-
-WORKDIR /srv
-
-COPY --from=frontend /build/dist/ /www/static/
-COPY --from=backend /build/target/debug/meta-tv-rs meta-tv-rs
-
-RUN echo "nginx &" >> run.sh
-RUN echo "./meta-tv-rs" >> run.sh
-RUN chmod +x run.sh
-
-ENTRYPOINT ./run.sh
+CMD ["sh", "./dev-entrypoint.sh"]
