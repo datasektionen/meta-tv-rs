@@ -31,7 +31,7 @@ pub fn Topbar() -> impl IntoView {
                                                 <a
                                                     href="/auth/logout"
                                                     rel="external"
-                                                    class="btn text-base ml-1"
+                                                    class="btn text-base ml-2"
                                                 >
                                                     Logout
                                                 </a>
