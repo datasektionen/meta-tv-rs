@@ -10,18 +10,18 @@ use reactive_stores::{AtKeyed, Store};
 
 #[derive(Clone)]
 struct FilterOptions {
-    pinned: bool,
-    published: bool,
-    visible: bool,
-    has_end_date: bool,
+    pinned: Option<bool>,
+    published: Option<bool>,
+    visible: Option<bool>,
+    has_end_date: Option<bool>,
 }
 impl Default for FilterOptions {
     fn default() -> Self {
         Self {
-            pinned: false,
-            published: false,
-            visible: false,
-            has_end_date: false,
+            pinned: None,
+            published: None,
+            visible: None,
+            has_end_date: None,
         }
     }
 }
@@ -36,7 +36,8 @@ pub struct SlideGroups {
 #[component]
 pub fn Home() -> impl IntoView {
     let slide_groups_resource = LocalResource::new(async move || api::list_slide_groups().await);
-    // used as source of truth instead of the resource, to not redundantly refetch all slides if only one change
+    // used as source of truth for displaying slides instead of the resource, to not redundantly refetch all slides if only one changes,
+    // effectively fetching only on page reload
     let slide_groups = Store::new(SlideGroups { rows: Vec::new() });
     Effect::new(move || {
         if let Some(Ok(list)) = slide_groups_resource.get() {
@@ -66,7 +67,7 @@ pub fn Home() -> impl IntoView {
                 <div class="container m-auto my-4">
                     <div class="flex flex-row items-center justify-between gap-4">
                         // filters
-                        <div class="flex flex-row gap-3 border-1 border-base-300 rounded-sm bg-base-200 p-2">
+                        <div class="flex flex-row gap-3 border-1 border-base-300 rounded-sm bg-base-200 p-2 flex-wrap">
                             <button
                                 class="flex flex-row items-center gap-1"
                                 on:click=move |_| {
@@ -74,64 +75,116 @@ pub fn Home() -> impl IntoView {
                                 }
                             >
                                 <span>"Filters"</span>
-                                <div
-                                    class=move || {
-                                        if show_filters.get() {
-                                            "w-fit h-fit rotate-180"
-                                        } else {
-                                            "w-fit h-fit rotate-90"
-                                        }
+                                <div class=move || {
+                                    if show_filters.get() {
+                                        "w-fit h-fit rotate-180"
+                                    } else {
+                                        "w-fit h-fit rotate-90"
                                     }
-                                >
-                                    <Icon icon=icondata::MdiTriangle width="0.5rem" height="0.5rem"/>
+                                }>
+                                    <Icon
+                                        icon=icondata::MdiTriangle
+                                        width="0.5rem"
+                                        height="0.5rem"
+                                    />
                                 </div>
                             </button>
-                            <Show when=move || show_filters.get()>
-                                <div class="flex flex-row gap-1">
-                                    <input
-                                        type="checkbox"
-                                        class="checkbox"
-                                        prop:checked=move || filters.get().pinned
-                                        on:input:target=move |ev| {
-                                            filters.update(|filters| {filters.pinned = ev.target().checked();});
-                                        }
-                                    />
-                                    <span>"Pinned"</span>
-                                </div>
-                                <div class="flex flex-row gap-1">
-                                    <input
-                                        type="checkbox"
-                                        class="checkbox"
-                                        prop:checked=move || filters.get().published
-                                        on:input:target=move |ev| {
-                                            filters.update(|filters| {filters.published = ev.target().checked();});
-                                        }
-                                    />
-                                    <span>"Published"</span>
-                                </div>
-                                <div class="flex flex-row gap-1">
-                                    <input
-                                        type="checkbox"
-                                        class="checkbox"
-                                        prop:checked=move || filters.get().visible
-                                        on:input:target=move |ev| {
-                                            filters.update(|filters| {filters.visible = ev.target().checked();});
-                                        }
-                                    />
-                                    <span>"Visible"</span>
-                                </div>
-                                <div class="flex flex-row gap-1">
-                                    <input
-                                        type="checkbox"
-                                        class="checkbox"
-                                        prop:checked=move || filters.get().has_end_date
-                                        on:input:target=move |ev| {
-                                            filters.update(|filters| {filters.has_end_date = ev.target().checked();});
-                                        }
-                                    />
-                                    <span>"Has end date"</span>
-                                </div>
-                            </Show>
+                            <div class="flex flex-row flex-wrap gap-1">
+                                <Show when=move || show_filters.get()>
+                                    <label class="label select-none">
+                                        <input
+                                            type="checkbox"
+                                            class="checkbox"
+                                            prop:checked=move || {
+                                                filters.get().pinned.is_some_and(|filter| filter)
+                                            }
+                                            prop:indeterminate=move || {
+                                                filters.get().pinned.is_some_and(|filter| !filter)
+                                            }
+                                            on:click=move |_| {
+                                                filters
+                                                    .update(|filters| {
+                                                        filters.pinned = match filters.pinned {
+                                                            Some(true) => Some(false),
+                                                            Some(false) => None,
+                                                            None => Some(true),
+                                                        };
+                                                    });
+                                            }
+                                        />
+                                        "Pinned"
+                                    </label>
+                                    <label class="label select-none">
+                                        <input
+                                            type="checkbox"
+                                            class="checkbox"
+                                            prop:checked=move || {
+                                                filters.get().published.is_some_and(|filter| filter)
+                                            }
+                                            prop:indeterminate=move || {
+                                                filters.get().published.is_some_and(|filter| !filter)
+                                            }
+                                            on:click=move |_| {
+                                                filters
+                                                    .update(|filters| {
+                                                        filters.published = match filters.published {
+                                                            Some(true) => Some(false),
+                                                            Some(false) => None,
+                                                            None => Some(true),
+                                                        };
+                                                    });
+                                            }
+                                        />
+                                        "Published"
+                                    </label>
+                                    <label class="label select-none">
+                                        <input
+                                            type="checkbox"
+                                            class="checkbox"
+                                            prop:checked=move || {
+                                                filters.get().visible.is_some_and(|filter| filter)
+                                            }
+                                            prop:indeterminate=move || {
+                                                filters.get().visible.is_some_and(|filter| !filter)
+                                            }
+                                            on:click=move |_| {
+                                                filters
+                                                    .update(|filters| {
+                                                        filters.visible = match filters.visible {
+                                                            Some(true) => Some(false),
+                                                            Some(false) => None,
+                                                            None => Some(true),
+                                                        };
+                                                    });
+                                            }
+                                        />
+                                        "Visible"
+                                    </label>
+                                    <label class="label select-none">
+                                        <input
+                                            type="checkbox"
+                                            class="checkbox"
+                                            prop:checked=move || {
+                                                filters.get().has_end_date.is_some_and(|filter| filter)
+                                            }
+                                            prop:indeterminate=move || {
+                                                filters.get().has_end_date.is_some_and(|filter| !filter)
+                                            }
+                                            on:click=move |_| {
+                                                filters
+                                                    .update(|filters| {
+                                                        filters.has_end_date = match filters.has_end_date {
+                                                            Some(true) => Some(false),
+                                                            Some(false) => None,
+                                                            None => Some(true),
+                                                        };
+                                                    });
+                                            }
+                                        />
+                                        "Has end date"
+                                    </label>
+                                </Show>
+                            </div>
                         </div>
 
                         <a class="btn" href="/new">
@@ -140,36 +193,63 @@ pub fn Home() -> impl IntoView {
                     </div>
                     <For
                         // filter out the outfiltered ones
-                        each=move || {slide_groups.rows().into_iter()
+                        each=move || {
+                            slide_groups
+                                .rows()
+                                .into_iter()
                                 .filter(move |slide_group| {
+                                    let mut should_display = true;
                                     let filter_options = filters.get();
-                                    if filter_options.pinned && slide_group.read().priority <= 0 {
-                                        return false;
+                                    if let Some(pinned) = filter_options.pinned {
+                                        if slide_group.read().priority <= 0 {
+                                            should_display &= !pinned;
+                                        } else {
+                                            should_display &= pinned;
+                                        };
                                     }
-                                    if filter_options.published && !slide_group.read().published {
-                                        return false;
+                                    if let Some(published) = filter_options.published {
+                                        if slide_group.read().published {
+                                            should_display &= published;
+                                        } else {
+                                            should_display &= !published;
+                                        };
                                     }
-                                    if filter_options.visible && slide_group.read().hidden {
-                                        return false;
+                                    if let Some(visible) = filter_options.visible {
+                                        if slide_group.read().hidden {
+                                            should_display &= !visible;
+                                        } else {
+                                            should_display &= visible;
+                                        };
                                     }
-                                    if filter_options.has_end_date && !slide_group.read().end_date.is_some() {
-                                        return false;
+                                    if let Some(has_end_date) = filter_options.has_end_date {
+                                        if slide_group.read().end_date.is_some() {
+                                            should_display &= has_end_date;
+                                        } else {
+                                            should_display &= !has_end_date;
+                                        };
                                     }
-                                    true
-                                })}
+                                    should_display
+                                })
+                        }
                         key=|slide_group| slide_group.get().id
-                        children={move |group: AtKeyed<Store<SlideGroups>, SlideGroups, i32, Vec<SlideGroupDto>>| {
+                        children={move |
+                            group: AtKeyed<
+                                Store<SlideGroups>,
+                                SlideGroups,
+                                i32,
+                                Vec<SlideGroupDto>,
+                            >|
+                        {
                             view! {
                                 <div class="card my-8">
                                     <div class="card-body">
                                         <SlideGroup
                                             slide_group=group
                                             on_delete=move || {
+                                                let id = group.key();
                                                 slide_groups
-                                                    .update(move |slide_groups| {
-                                                        let id = group.get().id;
-                                                        slide_groups.rows.retain(|slide_group| slide_group.id != id);
-                                                    });
+                                                    .rows()
+                                                    .update(move |rows| rows.retain(|r| r.id != id));
                                             }
                                         />
                                     </div>

@@ -59,18 +59,22 @@ pub fn SlideGroup(
     });
     Effect::new(move || {
         if let Some(Ok(new_slide_group)) = save_action.value().get() {
-            // if save was successful, update the original slide group
-            slide_group.set(new_slide_group.into());
-            edit_slide_group.set(EditSlideGroup::from(slide_group.get()));
-            is_editing.set(false);
+            untrack(|| {
+                // if save was successful, update the original slide group
+                slide_group.set(new_slide_group.into());
+                edit_slide_group.set(EditSlideGroup::from(slide_group.get()));
+                is_editing.set(false);
+            })
         }
     });
     Effect::new(move || {
         if let Some(Ok(new_slide_group)) = publish_toggle_action.value().get() {
-            // if publish was successful, update the original slide group
-            slide_group.set(new_slide_group.into());
-            edit_slide_group.set(EditSlideGroup::from(slide_group.get()));
-            is_editing.set(false);
+            untrack(|| {
+                // if publish was successful, update the original slide group
+                slide_group.set(new_slide_group.into());
+                edit_slide_group.set(EditSlideGroup::from(slide_group.get()));
+                is_editing.set(false);
+            })
         }
     });
 
@@ -112,7 +116,8 @@ pub fn SlideGroup(
                             class="pop-in-item btn btn-primary m-right-2"
                             class:btn-soft=move || slide_group.get().published
                             on:click=move |_| {
-                                publish_toggle_action.dispatch(edit_slide_group.get_untracked().into());
+                                publish_toggle_action
+                                    .dispatch(edit_slide_group.get_untracked().into());
                             }
                             disabled=disabled
                         >
