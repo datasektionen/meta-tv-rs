@@ -43,10 +43,7 @@ pub fn ScreenFeedSlideshow(feed: Signal<Vec<FeedEntryDto>>) -> impl IntoView {
                     match entry.content_type {
                         ContentType::Image => {
                             view! {
-                                <img
-                                    class="object-contain h-screen w-screen"
-                                    src=&entry.url
-                                />
+                                <img class="object-contain h-screen w-screen" src=&entry.url />
                             }
                                 .into_any()
                         }

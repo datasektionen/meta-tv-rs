@@ -1,11 +1,13 @@
 use common::dtos::{GroupDto, OwnerDto, UserInfoDto};
 use leptos::{logging, prelude::*};
-use reactive_stores::Field;
+use reactive_stores::{Store, Subfield};
 
-use crate::api::AppError;
+use crate::{api::AppError, utils::edit_slide_group::EditSlideGroup};
 
 #[component]
-pub fn OwnerSelect(#[prop(into)] owner: Field<OwnerDto>) -> impl IntoView {
+pub fn OwnerSelect(
+    #[prop(into)] owner: Subfield<Store<EditSlideGroup>, EditSlideGroup, OwnerDto>,
+) -> impl IntoView {
     let user_info = use_context::<LocalResource<Result<UserInfoDto, AppError>>>()
         .expect("User info has been provided");
 

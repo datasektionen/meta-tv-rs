@@ -1,9 +1,9 @@
 use chrono::Utc;
-use common::dtos::{EditSlideGroupDto, OwnerDto, UserInfoDto};
+use common::dtos::{EditSlideGroupDto, OwnerDto, SlideGroupDto, UserInfoDto};
 use icondata as i;
 use leptos::prelude::*;
 use leptos_icons::Icon;
-use reactive_stores::Store;
+use reactive_stores::{AtKeyed, Store};
 
 use crate::{
     api::{self, AppError},
@@ -11,6 +11,7 @@ use crate::{
         alert::Alert, dialog::Dialog, error::ErrorList, owner_select::OwnerSelect,
         slide::SlideList, start_end_date_input::StartEndDateInput,
     },
+    pages::home::SlideGroups,
     utils::{
         bool::fmt_if,
         datetime::{fmt_datetime, fmt_datetime_opt},
@@ -21,11 +22,13 @@ use crate::{
 /// Displays slide group, with inputs for editing it inline.
 #[component]
 pub fn SlideGroup(
-    #[prop(into)] slide_group: Store<EditSlideGroup>,
+    slide_group: AtKeyed<Store<SlideGroups>, SlideGroups, i32, Vec<SlideGroupDto>>,
     /// Is called if the user has deleted this slide group (the slide group will already have been
     /// removed server side at this point).
     on_delete: impl Fn() + 'static,
 ) -> impl IntoView {
+    let edit_slide_group = Store::new(EditSlideGroup::from(slide_group.get_untracked()));
+
     let user_info = use_context::<LocalResource<Result<UserInfoDto, AppError>>>()
         .expect("User info has been provided");
     let is_owner = move || {
@@ -36,7 +39,6 @@ pub fn SlideGroup(
             .unwrap_or(false)
     };
     let is_editing = RwSignal::new(false);
-    let saved_slide_group = RwSignal::new(slide_group.get_untracked());
 
     let update_slide_group = |slide_group: EditSlideGroupDto| {
         async move {
@@ -57,14 +59,22 @@ pub fn SlideGroup(
     });
     Effect::new(move || {
         if let Some(Ok(new_slide_group)) = save_action.value().get() {
-            slide_group.set(new_slide_group.into());
-            is_editing.set(false);
+            untrack(|| {
+                // if save was successful, update the original slide group
+                slide_group.set(new_slide_group.into());
+                edit_slide_group.set(EditSlideGroup::from(slide_group.get()));
+                is_editing.set(false);
+            })
         }
     });
     Effect::new(move || {
         if let Some(Ok(new_slide_group)) = publish_toggle_action.value().get() {
-            slide_group.set(new_slide_group.into());
-            is_editing.set(false);
+            untrack(|| {
+                // if publish was successful, update the original slide group
+                slide_group.set(new_slide_group.into());
+                edit_slide_group.set(EditSlideGroup::from(slide_group.get()));
+                is_editing.set(false);
+            })
         }
     });
 
@@ -106,7 +116,8 @@ pub fn SlideGroup(
                             class="pop-in-item btn btn-primary m-right-2"
                             class:btn-soft=move || slide_group.get().published
                             on:click=move |_| {
-                                publish_toggle_action.dispatch(slide_group.get_untracked().into());
+                                publish_toggle_action
+                                    .dispatch(edit_slide_group.get_untracked().into());
                             }
                             disabled=disabled
                         >
@@ -117,7 +128,7 @@ pub fn SlideGroup(
                         <button
                             class="pop-in-item btn btn-primary"
                             on:click=move |_| {
-                                save_action.dispatch(slide_group.get_untracked().into());
+                                save_action.dispatch(edit_slide_group.get_untracked().into());
                             }
                             disabled=disabled
                         >
@@ -126,7 +137,7 @@ pub fn SlideGroup(
                         <button
                             class="pop-in-item btn btn-soft"
                             on:click=move |_| {
-                                slide_group.set(saved_slide_group.get_untracked());
+                                edit_slide_group.set(EditSlideGroup::from(slide_group.get()));
                                 is_editing.set(false);
                             }
                             disabled=disabled
@@ -153,7 +164,6 @@ pub fn SlideGroup(
                             disabled=move || { disabled.get() || !is_owner() }
                             aria-label="Edit"
                             on:click=move |_| {
-                                saved_slide_group.set(slide_group.get_untracked());
                                 is_editing.set(true);
                             }
                         >
@@ -174,10 +184,10 @@ pub fn SlideGroup(
                     when=move || is_editing.get()
                     fallback=move || view! { <SlideGroupPropertiesDisplay slide_group /> }
                 >
-                    <SlideGroupPropertiesEditor slide_group disabled />
+                    <SlideGroupPropertiesEditor slide_group=edit_slide_group disabled />
                 </Show>
             </div>
-            <SlideList slide_group=slide_group editable=is_editing />
+            <SlideList slide_group=edit_slide_group editable=is_editing />
             <div
                 class="flex justify-end pop-in pop-in-collapse-layout"
                 class:pop-in-open=is_editing
@@ -196,7 +206,9 @@ pub fn SlideGroup(
 }
 
 #[component]
-fn SlideGroupPropertiesDisplay(#[prop(into)] slide_group: Store<EditSlideGroup>) -> impl IntoView {
+fn SlideGroupPropertiesDisplay(
+    #[prop(into)] slide_group: AtKeyed<Store<SlideGroups>, SlideGroups, i32, Vec<SlideGroupDto>>,
+) -> impl IntoView {
     view! {
         {move || match slide_group.get().created_by.clone() {
             common::dtos::OwnerDto::User(username) => {
